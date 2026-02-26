@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Codex
+Comment=Codex Desktop (Linux wrapper)
+Exec=bash -lc 'CODEX_CLI_PATH="${CODEX_CLI_PATH:-$(command -v codex)}" "$HOME/codex-desktop-linux/linux/run-codex.sh"'
+Terminal=false
+Icon=codex
+Categories=Development;
+StartupNotify=true

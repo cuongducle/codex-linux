@@ -1,0 +1,16 @@
+{
+  "name": "codex-desktop-linux-wrapper",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Linux wrapper for Codex Desktop app payload",
+  "scripts": {
+    "extract": "bash linux/scripts/extract-dmg.sh",
+    "build-native": "bash linux/scripts/build-native.sh",
+    "run": "bash linux/run-codex.sh"
+  },
+  "devDependencies": {
+    "7zip-bin": "^5.2.0",
+    "asar": "^3.2.0",
+    "electron": "40.0.0"
+  }
+}
