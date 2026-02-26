@@ -6,7 +6,7 @@ APP_DIR="${ROOT_DIR}/app_asar"
 BUILD_DIR="${ROOT_DIR}/build_native"
 
 if [[ ! -d "${APP_DIR}" ]]; then
-  echo "Missing ${APP_DIR}. Run linux/scripts/extract-dmg.sh first." >&2
+  echo "Missing ${APP_DIR}. Run scripts/setup.sh first." >&2
   exit 1
 fi
 

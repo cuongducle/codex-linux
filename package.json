@@ -1,12 +1,11 @@
 {
-  "name": "codex-desktop-linux-wrapper",
+  "name": "codex-desktop-linux",
   "private": true,
   "version": "0.1.0",
-  "description": "Linux wrapper for Codex Desktop app payload",
+  "description": "Simple Codex Desktop installer for Linux",
   "scripts": {
-    "extract": "bash linux/scripts/extract-dmg.sh",
-    "build-native": "bash linux/scripts/build-native.sh",
-    "run": "bash linux/run-codex.sh"
+    "create-app": "bash scripts/setup.sh",
+    "setup": "bash scripts/setup.sh"
   },
   "devDependencies": {
     "7zip-bin": "^5.2.0",
