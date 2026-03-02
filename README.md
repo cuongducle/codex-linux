@@ -71,6 +71,17 @@ GitHub Actions will automatically:
 - Generate APT repository metadata (`Packages`, `Release`)
 - Publish APT repo to `gh-pages`
 
+## Daily Auto-Update
+
+Workflow [`check-upstream.yml`](.github/workflows/check-upstream.yml) runs daily and:
+
+- Downloads latest upstream `Codex.dmg`
+- Extracts Codex app version from `app.asar/package.json`
+- Compares with latest git tag (`v*`)
+- If newer: updates `upstream-version.txt`, commits, and creates a new tag `v<codex-version>`
+
+That new tag triggers the release workflow, which publishes new `.deb`, `.AppImage`, and refreshed APT metadata.
+
 ## Required Repository Settings
 
 1. Enable GitHub Pages:
@@ -78,6 +89,11 @@ GitHub Actions will automatically:
 - Branch: `gh-pages` (root)
 
 2. Keep repository public (for public downloads).
+
+3. Add repository secret `RELEASE_PAT` (recommended):
+- Create a Personal Access Token with `repo` + `workflow` scopes.
+- Save it in repo Settings -> Secrets and variables -> Actions -> `RELEASE_PAT`.
+- This is used by daily update workflow to push tags that can trigger downstream release workflow.
 
 ## Features
 
