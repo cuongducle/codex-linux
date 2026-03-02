@@ -1,0 +1,80 @@
+name: Build Release (DEB + AppImage + APT Repo)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install APT tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Download Codex DMG
+        run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
+
+      - name: Setup app payload for packaging
+        run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
+
+      - name: Build DEB and AppImage
+        run: npm run build:linux
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.deb
+            dist/*.AppImage
+
+      - name: Build APT repository files
+        run: |
+          mkdir -p apt-public
+          cp dist/*.deb apt-public/
+          bash scripts/build-apt-repo.sh apt-public
+          bash scripts/generate-apt-install-script.sh "${{ github.repository_owner }}" "${{ github.event.repository.name }}" apt-public
+          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          cat > apt-public/index.html <<EOF
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Codex Desktop APT Repository</title>
+          </head>
+          <body>
+            <h1>Codex Desktop APT Repository</h1>
+            <p>Install:</p>
+            <pre><code>curl -fsSL ${REPO_URL}/install.sh | sudo bash</code></pre>
+            <p>Or manually:</p>
+            <pre><code>echo "deb [trusted=yes] ${REPO_URL}/ stable main" | sudo tee /etc/apt/sources.list.d/codex-desktop.list
+sudo apt update
+sudo apt install codex-desktop</code></pre>
+          </body>
+          </html>
+          EOF
+
+      - name: Publish APT repo to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./apt-public

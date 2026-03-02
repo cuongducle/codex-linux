@@ -5,6 +5,8 @@ work_dmg/
 build_native/
 node_modules/
 tools/
+dist/
+apt-public/
 
 # npm
 package-lock.json

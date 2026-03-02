@@ -40,9 +40,10 @@ if [[ ! -f "${DMG_PATH}" ]]; then
   exit 1
 fi
 
-if ! command -v codex >/dev/null 2>&1; then
+if [[ "${SKIP_APP_INSTALL}" != "1" ]] && ! command -v codex >/dev/null 2>&1; then
   echo "The 'codex' CLI is not found on PATH." >&2
   echo "Install Codex CLI first, then rerun this script." >&2
+  echo "Or run with SKIP_APP_INSTALL=1 for packaging-only flow." >&2
   exit 1
 fi
 

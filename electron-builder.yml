@@ -1,0 +1,20 @@
+appId: com.openai.codex.desktop.linux
+productName: Codex
+directories:
+  app: app_asar
+  output: dist
+files:
+  - "**/*"
+asar: false
+npmRebuild: false
+linux:
+  category: Development
+  executableName: codex-desktop
+  artifactName: codex-desktop-${version}-${arch}.${ext}
+  desktop:
+    Name: Codex
+    Comment: Codex Desktop for Linux
+    Categories: Development;
+extraMetadata:
+  name: codex-desktop
+  productName: Codex
