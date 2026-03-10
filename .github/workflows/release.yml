@@ -58,7 +58,23 @@ jobs:
             dist/*.deb
             dist/*.AppImage
 
+      - name: Check DEB size for gh-pages
+        id: deb_size
+        run: |
+          set -euo pipefail
+          LIMIT_BYTES=$((100 * 1024 * 1024))
+          DEB_FILE="$(ls -1 dist/*.deb | head -n 1)"
+          DEB_SIZE_BYTES="$(stat -c%s "${DEB_FILE}")"
+          echo "deb_file=${DEB_FILE}" >> "${GITHUB_OUTPUT}"
+          echo "deb_size_bytes=${DEB_SIZE_BYTES}" >> "${GITHUB_OUTPUT}"
+          if [[ "${DEB_SIZE_BYTES}" -lt "${LIMIT_BYTES}" ]]; then
+            echo "publish_apt=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "publish_apt=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Build APT repository files
+        if: steps.deb_size.outputs.publish_apt == 'true'
         run: |
           mkdir -p apt-public
           cp dist/*.deb apt-public/
@@ -85,7 +101,16 @@ jobs:
           </html>
           EOF
 
+      - name: Skip APT publish (DEB exceeds GitHub 100MB file limit)
+        if: steps.deb_size.outputs.publish_apt != 'true'
+        run: |
+          echo "Skipping gh-pages APT publish."
+          echo "DEB file: ${{ steps.deb_size.outputs.deb_file }}"
+          echo "Size bytes: ${{ steps.deb_size.outputs.deb_size_bytes }}"
+          echo "Reason: GitHub blocks files >= 100MB on git pushes (gh-pages branch)."
+
       - name: Publish APT repo to gh-pages
+        if: steps.deb_size.outputs.publish_apt == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
