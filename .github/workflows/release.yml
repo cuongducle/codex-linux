@@ -66,8 +66,8 @@ jobs:
             <pre><code>curl -fsSL ${REPO_URL}/install.sh | sudo bash</code></pre>
             <p>Or manually:</p>
             <pre><code>echo "deb [trusted=yes] ${REPO_URL}/ stable main" | sudo tee /etc/apt/sources.list.d/codex-desktop.list
-sudo apt update
-sudo apt install codex-desktop</code></pre>
+          sudo apt update
+          sudo apt install codex-desktop</code></pre>
           </body>
           </html>
           EOF
