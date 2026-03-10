@@ -9,6 +9,7 @@ asar: false
 npmRebuild: false
 linux:
   category: Development
+  maintainer: Codex Linux Maintainers <codex-linux-maintainers@users.noreply.github.com>
   executableName: codex-desktop
   artifactName: codex-desktop-${version}-${arch}.${ext}
   desktop:
