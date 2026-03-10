@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="${ROOT_DIR}/app_asar"
+APP_CLI_BIN="${ROOT_DIR}/app_resources/bin/codex"
 TARGET="${1:-all}"
 DMG_PATH="${2:-}"
 
@@ -48,14 +49,23 @@ esac
 need_cmd node
 need_cmd npm
 
-if [[ ! -d "${APP_DIR}" || ! -f "${APP_DIR}/package.json" ]]; then
+if [[ ! -d "${APP_DIR}" || ! -f "${APP_DIR}/package.json" || ! -f "${APP_CLI_BIN}" ]]; then
   if [[ -n "${DMG_PATH}" ]]; then
-    echo "app_asar not found. Running setup using: ${DMG_PATH}"
+    echo "App payload is incomplete. Running setup using: ${DMG_PATH}"
     SKIP_APP_INSTALL=1 bash "${ROOT_DIR}/scripts/setup.sh" "${DMG_PATH}"
   else
-    echo "Missing ${APP_DIR}. Run setup first, or pass a DMG path as arg #2." >&2
+    echo "Missing app payload. Required:" >&2
+    echo "  - ${APP_DIR}/package.json" >&2
+    echo "  - ${APP_CLI_BIN}" >&2
+    echo "Run setup first, or pass a DMG path as arg #2." >&2
     exit 1
   fi
+fi
+
+if [[ ! -f "${APP_CLI_BIN}" ]]; then
+  echo "Missing bundled Codex CLI binary: ${APP_CLI_BIN}" >&2
+  echo "Refusing to build packages that would crash at runtime." >&2
+  exit 1
 fi
 
 if [[ ! -d "${ROOT_DIR}/node_modules" ]]; then

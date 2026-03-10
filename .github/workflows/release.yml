@@ -35,8 +35,18 @@ jobs:
       - name: Setup app payload for packaging
         run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
 
+      - name: Verify CLI payload extracted
+        run: |
+          test -x app_resources/bin/codex
+          ls -l app_resources/bin/codex
+
       - name: Build DEB and AppImage
         run: npm run build:linux
+
+      - name: Verify packaged CLI binary
+        run: |
+          test -x dist/linux-unpacked/resources/bin/codex
+          ls -l dist/linux-unpacked/resources/bin/codex
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2

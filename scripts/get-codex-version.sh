@@ -49,7 +49,7 @@ if [[ "${EXTRACT_RC}" -ne 0 ]]; then
   fi
 fi
 
-ASAR_PATH="$(find "${WORK_DIR}" -type f -path "*Codex.app/Contents/Resources/app.asar" | head -n 1 || true)"
+ASAR_PATH="$(find "${WORK_DIR}" -type f -path "*/Contents/Resources/app.asar" | head -n 1 || true)"
 if [[ -z "${ASAR_PATH}" ]]; then
   ASAR_PATH="$(find "${WORK_DIR}" -type f -name "app.asar" | head -n 1 || true)"
 fi
