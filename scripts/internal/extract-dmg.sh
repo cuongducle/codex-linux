@@ -28,7 +28,19 @@ rm -rf "${WORK_DIR}" "${APP_ASAR_DIR}"
 mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}"
 
 echo "[1/3] Extracting DMG..."
-"${SEVEN_Z_BIN}" x -y -o"${WORK_DIR}" "${DMG_PATH}" >/dev/null
+EXTRACT_LOG="${WORK_DIR}/7z-extract.log"
+set +e
+"${SEVEN_Z_BIN}" x -y -o"${WORK_DIR}" "${DMG_PATH}" >"${EXTRACT_LOG}" 2>&1
+EXTRACT_RC=$?
+set -e
+if [[ "${EXTRACT_RC}" -ne 0 ]]; then
+  if grep -q "Dangerous link path was ignored" "${EXTRACT_LOG}"; then
+    echo "7z warning: ignored unsafe symlink entries in DMG, continuing."
+  else
+    cat "${EXTRACT_LOG}" >&2
+    exit "${EXTRACT_RC}"
+  fi
+fi
 
 echo "[2/3] Locating app.asar..."
 ASAR_PATH="$(find "${WORK_DIR}" -type f -path "*Codex.app/Contents/Resources/app.asar" | head -n 1 || true)"
@@ -36,6 +48,7 @@ if [[ -z "${ASAR_PATH}" ]]; then
   ASAR_PATH="$(find "${WORK_DIR}" -type f -name "app.asar" | head -n 1 || true)"
 fi
 if [[ -z "${ASAR_PATH}" ]]; then
+  cat "${EXTRACT_LOG}" >&2 || true
   echo "Could not find app.asar after extraction." >&2
   exit 1
 fi
