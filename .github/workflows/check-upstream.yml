@@ -151,4 +151,5 @@ jobs:
 
       - name: No update
         if: steps.etag.outputs.changed != 'true'
-        run: echo "Upstream DMG unchanged (ETag: ${{ steps.etag.outputs.etag }})"
+        run: |
+          echo "Upstream DMG unchanged (ETag: ${{ steps.etag.outputs.etag }})"
