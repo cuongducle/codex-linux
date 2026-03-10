@@ -9,6 +9,12 @@ No need to clone this repo or install Node.js.
 
 Release page: https://github.com/cuongducle/codex-linux/releases/latest
 
+## Ubuntu Support
+
+- Supported target: Ubuntu 22.04 and newer
+- Recommended: Ubuntu 24.04 or newer
+- Unsupported: Ubuntu 20.04 and older
+
 ### Option 1: Debian / Ubuntu (`.deb`)
 
 1. Go to [Releases](https://github.com/cuongducle/codex-linux/releases/latest).
