@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Desktop APT Repository</title>
+</head>
+<body>
+  <h1>Codex Desktop APT Repository</h1>
+  <p>Install:</p>
+  <pre><code>curl -fsSL https://cuongducle.github.io/codex-linux/install.sh | sudo bash</code></pre>
+  <p>Or manually:</p>
+  <pre><code>echo "deb [trusted=yes] https://cuongducle.github.io/codex-linux/ stable main" | sudo tee /etc/apt/sources.list.d/codex-desktop.list
+sudo apt update
+sudo apt install codex-desktop</code></pre>
+</body>
+</html>
