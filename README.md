@@ -1,39 +1,39 @@
 # Codex Desktop for Linux
 
-Unofficial Linux packaging workflow for Codex Desktop with support for **Debian APT** and **AppImage**.
+Unofficial Linux packaging for Codex Desktop.
 
-## Public Installation
+## User Installation (Release Only)
 
-### Debian / Ubuntu (APT Repository)
+End users only need files from **GitHub Releases**.
+No need to clone this repo or install Node.js.
 
-After you publish a release tag, users can install with:
+Release page: https://github.com/cuongducle/codex-linux/releases/latest
+
+### Option 1: Debian / Ubuntu (`.deb`)
+
+1. Go to [Releases](https://github.com/cuongducle/codex-linux/releases/latest).
+2. Download the latest `codex-desktop-*.deb` file.
+3. Install:
 
 ```bash
-# One-command installer
-curl -fsSL https://<owner>.github.io/<repo>/install.sh | sudo bash
-
-# Or manual setup
-echo "deb [trusted=yes] https://<owner>.github.io/<repo>/ stable main" | sudo tee /etc/apt/sources.list.d/codex-desktop.list
-sudo apt update
-sudo apt install codex-desktop
+sudo apt install ./codex-desktop-*.deb
 ```
 
-Updates:
+### Option 2: Any Distro (`.AppImage`)
+
+1. Go to [Releases](https://github.com/cuongducle/codex-linux/releases/latest).
+2. Download the latest `codex-desktop-*-x86_64.AppImage`.
+3. Run:
 
 ```bash
-sudo apt update
-sudo apt upgrade
-```
-
-### AppImage (Any Distro)
-
-Download from GitHub Releases:
-
-```bash
-wget https://github.com/<owner>/<repo>/releases/latest/download/codex-desktop-<version>-x86_64.AppImage
 chmod +x codex-desktop-*-x86_64.AppImage
 ./codex-desktop-*-x86_64.AppImage
 ```
+
+### Updating
+
+- `.deb`: download and install the newer release file.
+- `.AppImage`: replace the old AppImage with the new release file.
 
 ## Maintainer Flow (Build + Publish)
 
@@ -55,7 +55,7 @@ npm run build:linux
 
 Output artifacts are in `dist/`.
 
-### 2) Publish public files
+### 2) Publish release
 
 Push a version tag:
 
@@ -100,8 +100,8 @@ That new tag triggers the release workflow, which publishes new `.deb`, `.AppIma
 
 - Packaging targets: **DEB** and **AppImage** only
 - Linux native module rebuild (`better-sqlite3`, `node-pty`)
-- Auto-publish APT repo on release tag
-- Auto-upload AppImage to GitHub Releases
+- Auto-upload release artifacts (`.deb`, `.AppImage`) to GitHub Releases
+- Optional APT repo publish on release tag
 
 ## Repository Structure
 
