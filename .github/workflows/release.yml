@@ -32,6 +32,16 @@ jobs:
       - name: Download Codex DMG
         run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
 
+      - name: Build packaging container image
+        run: |
+          set -euo pipefail
+          docker build -t codex-linux-build - <<'EOF'
+          FROM node:20-bullseye
+          RUN apt-get update \
+            && apt-get install -y --no-install-recommends p7zip-full \
+            && rm -rf /var/lib/apt/lists/*
+          EOF
+
       - name: Setup app payload for packaging (containerized glibc baseline)
         run: |
           set -euo pipefail
@@ -41,7 +51,7 @@ jobs:
             -e SKIP_APP_INSTALL=1 \
             -v "${PWD}:/work" \
             -w /work \
-            node:20-bullseye \
+            codex-linux-build \
             bash -lc 'node -v && npm -v && bash scripts/setup.sh ./Codex.dmg'
 
       - name: Install Linux Codex CLI payload
