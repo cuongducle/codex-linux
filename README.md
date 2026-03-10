@@ -75,10 +75,11 @@ GitHub Actions will automatically:
 
 Workflow [`check-upstream.yml`](.github/workflows/check-upstream.yml) runs daily and:
 
-- Downloads latest upstream `Codex.dmg`
-- Extracts Codex app version from `app.asar/package.json`
-- Compares with latest git tag (`v*`)
-- If newer: updates `upstream-version.txt`, commits, and creates a new tag `v<codex-version>`
+- Sends a `HEAD` request to upstream `Codex.dmg` and checks `ETag` first
+- If `ETag` is unchanged: skip download
+- If `ETag` changed: download `Codex.dmg`, extract Codex app version from `app.asar/package.json`
+- Compares that version with latest git tag (`v*`)
+- If newer: updates `upstream-version.txt`, updates `upstream-etag.txt`, commits, and creates a new tag `v<codex-version>`
 
 That new tag triggers the release workflow, which publishes new `.deb`, `.AppImage`, and refreshed APT metadata.
 

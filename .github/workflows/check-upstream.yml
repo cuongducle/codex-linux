@@ -26,15 +26,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Download Codex DMG
-        run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
-
-      - name: Read upstream Codex version
-        id: upstream
-        run: |
-          VERSION="$(bash scripts/get-codex-version.sh ./Codex.dmg)"
-          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
-
       - name: Determine latest local tag
         id: latest_tag
         run: |
@@ -42,21 +33,85 @@ jobs:
           TAG="${TAG#v}"
           echo "version=${TAG}" >> "${GITHUB_OUTPUT}"
 
-      - name: Create commit and tag when new version exists
-        if: steps.upstream.outputs.version != steps.latest_tag.outputs.version
+      - name: Check upstream DMG ETag
+        id: etag
+        run: |
+          set -euo pipefail
+          URL="https://persistent.oaistatic.com/codex-app-prod/Codex.dmg"
+          STORED_ETAG=""
+          if [[ -f upstream-etag.txt ]]; then
+            STORED_ETAG="$(tr -d '\r\n' < upstream-etag.txt)"
+          fi
+
+          HEADER_FILE="$(mktemp)"
+          STATUS_CODE=""
+          if [[ -n "${STORED_ETAG}" ]]; then
+            STATUS_CODE="$(curl -sS -I -D "${HEADER_FILE}" -o /dev/null -w '%{http_code}' -H "If-None-Match: ${STORED_ETAG}" "${URL}")"
+          else
+            STATUS_CODE="$(curl -sS -I -D "${HEADER_FILE}" -o /dev/null -w '%{http_code}' "${URL}")"
+          fi
+
+          if [[ "${STATUS_CODE}" == "304" ]]; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "etag=${STORED_ETAG}" >> "${GITHUB_OUTPUT}"
+            echo "No upstream DMG update (304 Not Modified)."
+            exit 0
+          fi
+
+          if [[ "${STATUS_CODE}" != "200" ]]; then
+            echo "Unexpected status from upstream HEAD: ${STATUS_CODE}" >&2
+            cat "${HEADER_FILE}" >&2 || true
+            exit 1
+          fi
+
+          CURRENT_ETAG="$(
+            awk 'BEGIN{IGNORECASE=1} /^etag:/ {sub(/\r$/,"",$2); print $2; exit}' "${HEADER_FILE}"
+          )"
+
+          if [[ -z "${CURRENT_ETAG}" ]]; then
+            echo "Missing ETag header from upstream; cannot do safe change detection." >&2
+            cat "${HEADER_FILE}" >&2 || true
+            exit 1
+          fi
+
+          echo "etag=${CURRENT_ETAG}" >> "${GITHUB_OUTPUT}"
+          if [[ "${CURRENT_ETAG}" == "${STORED_ETAG}" ]]; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "No upstream DMG update (ETag unchanged)."
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            echo "Upstream DMG changed: ${STORED_ETAG} -> ${CURRENT_ETAG}"
+          fi
+
+      - name: Download Codex DMG
+        if: steps.etag.outputs.changed == 'true'
+        run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
+
+      - name: Read upstream Codex version
+        if: steps.etag.outputs.changed == 'true'
+        id: upstream
+        run: |
+          VERSION="$(bash scripts/get-codex-version.sh ./Codex.dmg)"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create commit and optional tag when upstream changed
+        if: steps.etag.outputs.changed == 'true'
         env:
           RELEASE_PAT: ${{ secrets.RELEASE_PAT }}
         run: |
           set -euo pipefail
+          NEW_ETAG="${{ steps.etag.outputs.etag }}"
           NEW_VERSION="${{ steps.upstream.outputs.version }}"
-          NEW_TAG="v${NEW_VERSION}"
-
-          if git rev-parse "${NEW_TAG}" >/dev/null 2>&1; then
-            echo "Tag ${NEW_TAG} already exists. Nothing to do."
-            exit 0
+          LATEST_LOCAL_VERSION="${{ steps.latest_tag.outputs.version }}"
+          VERSION_CHANGED="false"
+          if [[ "${NEW_VERSION}" != "${LATEST_LOCAL_VERSION}" ]]; then
+            VERSION_CHANGED="true"
           fi
 
-          echo "${NEW_VERSION}" > upstream-version.txt
+          echo "${NEW_ETAG}" > upstream-etag.txt
+          if [[ "${VERSION_CHANGED}" == "true" ]]; then
+            echo "${NEW_VERSION}" > upstream-version.txt
+          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -65,17 +120,35 @@ jobs:
             git remote set-url origin "https://x-access-token:${RELEASE_PAT}@github.com/${GITHUB_REPOSITORY}.git"
           fi
 
-          if ! git diff --quiet -- upstream-version.txt; then
+          git add upstream-etag.txt
+          if [[ "${VERSION_CHANGED}" == "true" ]]; then
             git add upstream-version.txt
-            git commit -m "chore: bump upstream Codex to ${NEW_VERSION}"
-            git push origin HEAD:${GITHUB_REF_NAME}
-          else
-            echo "Version file unchanged, skipping commit."
           fi
 
-          git tag "${NEW_TAG}"
-          git push origin "${NEW_TAG}"
+          if ! git diff --cached --quiet; then
+            if [[ "${VERSION_CHANGED}" == "true" ]]; then
+              COMMIT_MSG="chore: bump upstream Codex to ${NEW_VERSION}"
+            else
+              COMMIT_MSG="chore: update upstream Codex etag"
+            fi
+            git commit -m "${COMMIT_MSG}"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          else
+            echo "Tracking files unchanged, skipping commit."
+          fi
+
+          if [[ "${VERSION_CHANGED}" == "true" ]]; then
+            NEW_TAG="v${NEW_VERSION}"
+            if git rev-parse "${NEW_TAG}" >/dev/null 2>&1; then
+              echo "Tag ${NEW_TAG} already exists. Nothing to do."
+              exit 0
+            fi
+            git tag "${NEW_TAG}"
+            git push origin "${NEW_TAG}"
+          else
+            echo "Upstream DMG changed but app version stayed at ${NEW_VERSION}; skipping tag."
+          fi
 
       - name: No update
-        if: steps.upstream.outputs.version == steps.latest_tag.outputs.version
-        run: echo "Upstream version unchanged: ${{ steps.upstream.outputs.version }}"
+        if: steps.etag.outputs.changed != 'true'
+        run: echo "Upstream DMG unchanged (ETag: ${{ steps.etag.outputs.etag }})"
