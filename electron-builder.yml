@@ -17,6 +17,7 @@ extraResources:
 asar: false
 npmRebuild: false
 linux:
+  icon: assets/icons/codex-icon-1024.png
   category: Development
   maintainer: Codex Linux Maintainers <codex-linux-maintainers@users.noreply.github.com>
   executableName: codex-desktop
