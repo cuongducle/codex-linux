@@ -88,6 +88,10 @@ jobs:
 
       - name: Verify packaged CLI binary
         run: |
+          test -x dist/linux-unpacked/resources/codex
+          ls -l dist/linux-unpacked/resources/codex
+          file dist/linux-unpacked/resources/codex
+          file dist/linux-unpacked/resources/codex | grep -E "ELF"
           test -x dist/linux-unpacked/resources/bin/codex
           ls -l dist/linux-unpacked/resources/bin/codex
           file dist/linux-unpacked/resources/bin/codex

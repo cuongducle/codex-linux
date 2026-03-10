@@ -6,6 +6,10 @@ directories:
 files:
   - "**/*"
 extraResources:
+  - from: app_resources/bin/codex
+    to: codex
+    filter:
+      - "codex"
   - from: app_resources/bin
     to: bin
     filter:
