@@ -70,7 +70,7 @@ echo "Building target: ${TARGET}"
 (
   cd "${ROOT_DIR}"
   export CSC_IDENTITY_AUTO_DISCOVERY=false
-  npx electron-builder --config electron-builder.yml "${TARGET_ARGS[@]}"
+  npx electron-builder --config electron-builder.yml --publish never "${TARGET_ARGS[@]}"
 )
 
 echo "Done. Artifacts:"
