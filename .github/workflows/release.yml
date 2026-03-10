@@ -40,6 +40,9 @@ jobs:
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
             dist/*.deb
