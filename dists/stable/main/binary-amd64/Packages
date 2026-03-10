@@ -6,10 +6,10 @@ Installed-Size: 334684
 Depends: libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0
 Recommends: libappindicator3-1
 Filename: pool/main/c/codex-desktop/codex-desktop-26.305.950-amd64.deb
-Size: 87963222
-MD5sum: 1fec73884fef6268aaf1231fd46f8925
-SHA1: 43decf6c4152474a534ea65f80f7038f3a903799
-SHA256: c32b681f4fe34fb188a31f405a7e09c31049a41eeb1ea7956894b50d1775f697
+Size: 87967670
+MD5sum: 12fc3b6cd6d6d60136628ca3b033ab13
+SHA1: 833e3ef1d5b6fcfec44fba79228140297508ea92
+SHA256: 8096ae628868f8090b562477bcb5dff1b826b99c5ef63672372a695f237d383a
 Section: default
 Priority: optional
 Homepage: https://github.com/cuongducle/codex-linux
