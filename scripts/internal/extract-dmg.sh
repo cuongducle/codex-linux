@@ -28,6 +28,18 @@ prepare_7z_bin() {
   fi
 }
 
+extract_archive() {
+  local archive_path="$1"
+  local output_dir="$2"
+  local log_path="$3"
+
+  set +e
+  "${SEVEN_Z_BIN}" x -y -o"${output_dir}" "${archive_path}" >"${log_path}" 2>&1
+  local rc=$?
+  set -e
+  return "${rc}"
+}
+
 if [[ -x "${ROOT_DIR}/tools/7zz" ]]; then
   SEVEN_Z_BIN="${ROOT_DIR}/tools/7zz"
 elif [[ -d "${ROOT_DIR}/node_modules" ]]; then
@@ -47,13 +59,21 @@ mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}/bin"
 
 echo "[1/3] Extracting DMG..."
 EXTRACT_LOG="${WORK_DIR}/7z-extract.log"
-set +e
-"${SEVEN_Z_BIN}" x -y -o"${WORK_DIR}" "${DMG_PATH}" >"${EXTRACT_LOG}" 2>&1
-EXTRACT_RC=$?
-set -e
+EXTRACT_RC=0
+extract_archive "${DMG_PATH}" "${WORK_DIR}" "${EXTRACT_LOG}" || EXTRACT_RC=$?
 if [[ "${EXTRACT_RC}" -ne 0 ]]; then
   if grep -q "Dangerous link path was ignored" "${EXTRACT_LOG}"; then
     echo "7z warning: ignored unsafe symlink entries in DMG, continuing."
+  elif command -v dmg2img >/dev/null 2>&1; then
+    echo "Direct DMG extraction failed, retrying via dmg2img..."
+    IMG_PATH="${WORK_DIR}/Codex.img"
+    dmg2img "${DMG_PATH}" "${IMG_PATH}" >/dev/null
+    EXTRACT_RC=0
+    extract_archive "${IMG_PATH}" "${WORK_DIR}" "${EXTRACT_LOG}" || EXTRACT_RC=$?
+    if [[ "${EXTRACT_RC}" -ne 0 ]]; then
+      cat "${EXTRACT_LOG}" >&2
+      exit "${EXTRACT_RC}"
+    fi
   else
     cat "${EXTRACT_LOG}" >&2
     exit "${EXTRACT_RC}"

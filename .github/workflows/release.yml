@@ -38,7 +38,7 @@ jobs:
           docker build -t codex-linux-build - <<'EOF'
           FROM node:20-bullseye
           RUN apt-get update \
-            && apt-get install -y --no-install-recommends p7zip-full \
+            && apt-get install -y --no-install-recommends dmg2img p7zip-full \
             && rm -rf /var/lib/apt/lists/*
           EOF
 
