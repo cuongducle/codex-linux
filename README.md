@@ -100,7 +100,7 @@ That new tag triggers the release workflow, which publishes new `.deb`, `.AppIma
 
 - Packaging targets: **DEB** and **AppImage** only
 - Linux native module rebuild (`better-sqlite3`, `node-pty`)
-- Release CI rebuilds native modules in a pinned `node:20-bullseye`-based container with `dmg2img` and system `7z` (glibc 2.31 baseline) for wider compatibility
+- Release CI runs on current Ubuntu runners with `dmg2img` and `7zip`
 - Auto-upload release artifacts (`.deb`, `.AppImage`) to GitHub Releases
 - Optional APT repo publish on release tag
 

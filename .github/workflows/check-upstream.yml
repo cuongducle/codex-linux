@@ -26,7 +26,7 @@ jobs:
       - name: Install DMG tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y dmg2img
+          sudo apt-get install -y 7zip dmg2img
 
       - name: Install dependencies
         run: npm install

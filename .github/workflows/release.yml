@@ -24,7 +24,7 @@ jobs:
       - name: Install APT tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg-dev
+          sudo apt-get install -y 7zip dmg2img dpkg-dev
 
       - name: Install npm dependencies
         run: npm install
@@ -32,27 +32,8 @@ jobs:
       - name: Download Codex DMG
         run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
 
-      - name: Build packaging container image
-        run: |
-          set -euo pipefail
-          docker build -t codex-linux-build - <<'EOF'
-          FROM node:20-bullseye
-          RUN apt-get update \
-            && apt-get install -y --no-install-recommends dmg2img p7zip-full \
-            && rm -rf /var/lib/apt/lists/*
-          EOF
-
-      - name: Setup app payload for packaging (containerized glibc baseline)
-        run: |
-          set -euo pipefail
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -e HOME=/tmp \
-            -e SKIP_APP_INSTALL=1 \
-            -v "${PWD}:/work" \
-            -w /work \
-            codex-linux-build \
-            bash -lc 'node -v && npm -v && bash scripts/setup.sh ./Codex.dmg'
+      - name: Setup app payload for packaging
+        run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
 
       - name: Install Linux Codex CLI payload
         run: npm install --no-save @openai/codex@0.112.0
@@ -104,33 +85,6 @@ jobs:
 
       - name: Build DEB and AppImage
         run: npm run build:linux
-
-      - name: Verify better-sqlite3 GLIBC compatibility (Ubuntu 20.04 baseline)
-        run: |
-          set -euo pipefail
-          BASELINE_GLIBC="2.31"
-          NODE_FILE="$(find dist/linux-unpacked -type f -name better_sqlite3.node | head -n 1 || true)"
-          if [[ -z "${NODE_FILE}" ]]; then
-            echo "Could not locate better_sqlite3.node in dist/linux-unpacked." >&2
-            exit 1
-          fi
-          echo "Inspecting: ${NODE_FILE}"
-          MAX_GLIBC="$(
-            strings "${NODE_FILE}" \
-              | grep -oE 'GLIBC_[0-9]+\.[0-9]+' \
-              | sed 's/^GLIBC_//' \
-              | sort -V \
-              | tail -n 1
-          )"
-          if [[ -z "${MAX_GLIBC}" ]]; then
-            echo "No GLIBC symbol version found in ${NODE_FILE}." >&2
-            exit 1
-          fi
-          echo "Detected max GLIBC requirement: ${MAX_GLIBC}"
-          if dpkg --compare-versions "${MAX_GLIBC}" gt "${BASELINE_GLIBC}"; then
-            echo "better_sqlite3.node requires GLIBC_${MAX_GLIBC}, exceeds baseline GLIBC_${BASELINE_GLIBC}." >&2
-            exit 1
-          fi
 
       - name: Verify packaged CLI binary
         run: |

@@ -42,12 +42,12 @@ extract_archive() {
 
 if [[ -x "${ROOT_DIR}/tools/7zz" ]]; then
   SEVEN_Z_BIN="${ROOT_DIR}/tools/7zz"
-elif [[ -d "${ROOT_DIR}/node_modules" ]]; then
-  SEVEN_Z_BIN="$(node -e "console.log(require('7zip-bin').path7za)")"
 elif command -v 7zz >/dev/null 2>&1; then
   SEVEN_Z_BIN="$(command -v 7zz)"
 elif command -v 7z >/dev/null 2>&1; then
   SEVEN_Z_BIN="$(command -v 7z)"
+elif [[ -d "${ROOT_DIR}/node_modules" ]]; then
+  SEVEN_Z_BIN="$(node -e "console.log(require('7zip-bin').path7za)")"
 else
   echo "No 7z binary found. Install 7zip or place tools/7zz." >&2
   exit 1
