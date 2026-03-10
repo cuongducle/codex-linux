@@ -5,6 +5,11 @@ directories:
   output: dist
 files:
   - "**/*"
+extraResources:
+  - from: app_resources/bin
+    to: bin
+    filter:
+      - "**/*"
 asar: false
 npmRebuild: false
 linux:

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WORK_DIR="${ROOT_DIR}/work_dmg"
 APP_ASAR_DIR="${ROOT_DIR}/app_asar"
+APP_RESOURCES_DIR="${ROOT_DIR}/app_resources"
 DMG_PATH="${1:-${ROOT_DIR}/Codex.dmg}"
 
 if [[ ! -f "${DMG_PATH}" ]]; then
@@ -24,8 +25,8 @@ else
   exit 1
 fi
 
-rm -rf "${WORK_DIR}" "${APP_ASAR_DIR}"
-mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}"
+rm -rf "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}"
+mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}/bin"
 
 echo "[1/3] Extracting DMG..."
 EXTRACT_LOG="${WORK_DIR}/7z-extract.log"
@@ -53,8 +54,17 @@ if [[ -z "${ASAR_PATH}" ]]; then
   exit 1
 fi
 
+BIN_DIR_PATH="$(find "${WORK_DIR}" -type d -path "*Codex.app/Contents/Resources/bin" | head -n 1 || true)"
+if [[ -n "${BIN_DIR_PATH}" ]]; then
+  mkdir -p "${APP_RESOURCES_DIR}/bin"
+  cp -a "${BIN_DIR_PATH}/." "${APP_RESOURCES_DIR}/bin/"
+fi
+
 echo "[3/3] Extracting app.asar -> ${APP_ASAR_DIR}"
 npx --yes asar extract "${ASAR_PATH}" "${APP_ASAR_DIR}"
 
 echo "Done."
 echo "app_asar: ${APP_ASAR_DIR}"
+if [[ -d "${APP_RESOURCES_DIR}/bin" ]]; then
+  echo "app_resources/bin: ${APP_RESOURCES_DIR}/bin"
+fi
