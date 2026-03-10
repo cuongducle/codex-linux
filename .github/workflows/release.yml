@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -32,8 +32,17 @@ jobs:
       - name: Download Codex DMG
         run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
 
-      - name: Setup app payload for packaging
-        run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
+      - name: Setup app payload for packaging (containerized glibc baseline)
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            -e SKIP_APP_INSTALL=1 \
+            -v "${PWD}:/work" \
+            -w /work \
+            node:20-bullseye \
+            bash -lc 'node -v && npm -v && bash scripts/setup.sh ./Codex.dmg'
 
       - name: Install Linux Codex CLI payload
         run: npm install --no-save @openai/codex@0.112.0
