@@ -29,11 +29,14 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
-      - name: Install Linux Codex CLI payload
-        run: npm install --no-save @openai/codex@0.112.0
-
       - name: Download Codex DMG
         run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
+
+      - name: Setup app payload for packaging
+        run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
+
+      - name: Install Linux Codex CLI payload
+        run: npm install --no-save @openai/codex@0.112.0
 
       - name: Resolve Linux Codex CLI binary path
         id: linux_cli
@@ -67,8 +70,11 @@ jobs:
           echo "path=${CLI_BIN}" >> "${GITHUB_OUTPUT}"
           file "${CLI_BIN}"
 
-      - name: Setup app payload for packaging
-        run: CODEX_CLI_SOURCE_PATH="${{ steps.linux_cli.outputs.path }}" SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
+      - name: Replace bundled CLI with Linux binary
+        run: |
+          set -euo pipefail
+          cp -f "${{ steps.linux_cli.outputs.path }}" app_resources/bin/codex
+          chmod +x app_resources/bin/codex
 
       - name: Verify CLI payload extracted
         run: |
