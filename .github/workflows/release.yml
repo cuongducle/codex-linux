@@ -39,7 +39,27 @@ jobs:
         id: linux_cli
         run: |
           set -euo pipefail
-          CLI_BIN="$(find node_modules/@openai -type f -path "*/@openai/codex-linux-*/vendor/*/path/codex" | head -n 1)"
+          find_cli_bin() {
+            find node_modules/@openai -type f -name codex \
+              | grep -E '/@openai/codex-linux-[^/]+/vendor/.+/(codex/codex|path/codex)$' \
+              | head -n 1 || true
+          }
+
+          CLI_BIN="$(find_cli_bin)"
+
+          if [[ -z "${CLI_BIN}" ]]; then
+            ARCH="$(uname -m)"
+            if [[ "${ARCH}" == "x86_64" ]]; then
+              npm install --no-save "@openai/codex-linux-x64@npm:@openai/codex@0.112.0-linux-x64"
+            elif [[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]]; then
+              npm install --no-save "@openai/codex-linux-arm64@npm:@openai/codex@0.112.0-linux-arm64"
+            else
+              echo "Unsupported Linux arch for Codex CLI payload: ${ARCH}" >&2
+              exit 1
+            fi
+            CLI_BIN="$(find_cli_bin)"
+          fi
+
           if [[ -z "${CLI_BIN}" ]]; then
             echo "Could not locate Linux codex binary under node_modules/@openai." >&2
             exit 1
