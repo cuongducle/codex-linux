@@ -13,18 +13,34 @@ if [[ ! -f "${DMG_PATH}" ]]; then
   exit 1
 fi
 
+prepare_7z_bin() {
+  local src="$1"
+  local staged_dir staged_bin
+
+  if [[ "${src}" == "${ROOT_DIR}"/* ]]; then
+    staged_dir="$(mktemp -d)"
+    staged_bin="${staged_dir}/$(basename "${src}")"
+    cp -f "${src}" "${staged_bin}"
+    chmod +x "${staged_bin}"
+    echo "${staged_bin}"
+  else
+    echo "${src}"
+  fi
+}
+
 if [[ -x "${ROOT_DIR}/tools/7zz" ]]; then
   SEVEN_Z_BIN="${ROOT_DIR}/tools/7zz"
+elif [[ -d "${ROOT_DIR}/node_modules" ]]; then
+  SEVEN_Z_BIN="$(node -e "console.log(require('7zip-bin').path7za)")"
 elif command -v 7zz >/dev/null 2>&1; then
   SEVEN_Z_BIN="$(command -v 7zz)"
 elif command -v 7z >/dev/null 2>&1; then
   SEVEN_Z_BIN="$(command -v 7z)"
-elif [[ -d "${ROOT_DIR}/node_modules" ]]; then
-  SEVEN_Z_BIN="$(node -e "console.log(require('7zip-bin').path7za)")"
 else
   echo "No 7z binary found. Install 7zip or place tools/7zz." >&2
   exit 1
 fi
+SEVEN_Z_BIN="$(prepare_7z_bin "${SEVEN_Z_BIN}")"
 
 rm -rf "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}"
 mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}/bin"
