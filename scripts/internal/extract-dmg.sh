@@ -6,6 +6,7 @@ WORK_DIR="${ROOT_DIR}/work_dmg"
 APP_ASAR_DIR="${ROOT_DIR}/app_asar"
 APP_RESOURCES_DIR="${ROOT_DIR}/app_resources"
 DMG_PATH="${1:-${ROOT_DIR}/Codex.dmg}"
+CODEX_CLI_SOURCE_PATH="${CODEX_CLI_SOURCE_PATH:-}"
 
 if [[ ! -f "${DMG_PATH}" ]]; then
   echo "DMG not found: ${DMG_PATH}" >&2
@@ -77,6 +78,17 @@ if [[ ! -f "${APP_RESOURCES_DIR}/bin/codex" ]]; then
   echo "Could not locate bundled Codex CLI in DMG resources." >&2
   echo "Expected path similar to: */Contents/Resources/bin/codex" >&2
   exit 1
+fi
+
+# Optional Linux override for CI packaging. Useful because DMG bundles
+# macOS binaries, while Linux packages require a Linux codex binary.
+if [[ -n "${CODEX_CLI_SOURCE_PATH}" ]]; then
+  if [[ ! -f "${CODEX_CLI_SOURCE_PATH}" ]]; then
+    echo "CODEX_CLI_SOURCE_PATH does not exist: ${CODEX_CLI_SOURCE_PATH}" >&2
+    exit 1
+  fi
+  cp -f "${CODEX_CLI_SOURCE_PATH}" "${APP_RESOURCES_DIR}/bin/codex"
+  chmod +x "${APP_RESOURCES_DIR}/bin/codex" || true
 fi
 
 echo "Done."

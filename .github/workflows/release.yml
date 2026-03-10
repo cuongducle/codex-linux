@@ -29,16 +29,33 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      - name: Install Linux Codex CLI payload
+        run: npm install --no-save @openai/codex@0.112.0
+
       - name: Download Codex DMG
         run: curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
 
+      - name: Resolve Linux Codex CLI binary path
+        id: linux_cli
+        run: |
+          set -euo pipefail
+          CLI_BIN="$(find node_modules/@openai -type f -path "*/@openai/codex-linux-*/vendor/*/path/codex" | head -n 1)"
+          if [[ -z "${CLI_BIN}" ]]; then
+            echo "Could not locate Linux codex binary under node_modules/@openai." >&2
+            exit 1
+          fi
+          echo "path=${CLI_BIN}" >> "${GITHUB_OUTPUT}"
+          file "${CLI_BIN}"
+
       - name: Setup app payload for packaging
-        run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
+        run: CODEX_CLI_SOURCE_PATH="${{ steps.linux_cli.outputs.path }}" SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
 
       - name: Verify CLI payload extracted
         run: |
           test -x app_resources/bin/codex
           ls -l app_resources/bin/codex
+          file app_resources/bin/codex
+          file app_resources/bin/codex | grep -E "ELF"
 
       - name: Build DEB and AppImage
         run: npm run build:linux
@@ -47,6 +64,8 @@ jobs:
         run: |
           test -x dist/linux-unpacked/resources/bin/codex
           ls -l dist/linux-unpacked/resources/bin/codex
+          file dist/linux-unpacked/resources/bin/codex
+          file dist/linux-unpacked/resources/bin/codex | grep -E "ELF"
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
