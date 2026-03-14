@@ -113,6 +113,12 @@ jobs:
             VERSION_CHANGED="true"
           fi
 
+          if [[ "${VERSION_CHANGED}" == "true" && -z "${RELEASE_PAT}" ]]; then
+            echo "RELEASE_PAT secret is required to push version tags that trigger release workflow." >&2
+            echo "Set Settings -> Secrets and variables -> Actions -> RELEASE_PAT with repo+workflow scopes." >&2
+            exit 1
+          fi
+
           echo "${NEW_ETAG}" > upstream-etag.txt
           if [[ "${VERSION_CHANGED}" == "true" ]]; then
             echo "${NEW_VERSION}" > upstream-version.txt
