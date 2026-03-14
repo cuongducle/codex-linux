@@ -26,7 +26,7 @@ jobs:
             runner: ubuntu-latest
             cli_package: "@openai/codex-linux-x64@npm:@openai/codex@0.112.0-linux-x64"
           - arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-latest
             cli_package: "@openai/codex-linux-arm64@npm:@openai/codex@0.112.0-linux-arm64"
 
     steps:
@@ -57,7 +57,7 @@ jobs:
         run: SKIP_APP_INSTALL=1 bash scripts/setup.sh ./Codex.dmg
 
       - name: Install Linux Codex CLI payload
-        run: npm install --no-save "${{ matrix.cli_package }}"
+        run: npm install --force --no-save "${{ matrix.cli_package }}"
 
       - name: Resolve Linux Codex CLI binary path
         id: linux_cli
