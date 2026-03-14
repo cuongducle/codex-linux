@@ -42,6 +42,16 @@ jobs:
           cache: npm
           cache-dependency-path: package.json
 
+      - name: Cache electron-builder toolchains
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-ebuilder-${{ matrix.arch }}-${{ hashFiles('package.json', 'electron-builder.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-ebuilder-${{ matrix.arch }}-
+
       - name: Install APT tooling
         run: |
           sudo apt-get update
