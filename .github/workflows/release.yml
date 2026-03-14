@@ -109,15 +109,17 @@ jobs:
             --${{ matrix.arch }}
 
       - name: Verify packaged CLI binary
+        env:
+          APP_OUT_DIR: ${{ matrix.arch == 'arm64' && 'dist/linux-arm64-unpacked' || 'dist/linux-unpacked' }}
         run: |
-          test -x dist/linux-unpacked/resources/codex
-          ls -l dist/linux-unpacked/resources/codex
-          file dist/linux-unpacked/resources/codex
-          file dist/linux-unpacked/resources/codex | grep -E "ELF"
-          test -x dist/linux-unpacked/resources/bin/codex
-          ls -l dist/linux-unpacked/resources/bin/codex
-          file dist/linux-unpacked/resources/bin/codex
-          file dist/linux-unpacked/resources/bin/codex | grep -E "ELF"
+          test -x "${APP_OUT_DIR}/resources/codex"
+          ls -l "${APP_OUT_DIR}/resources/codex"
+          file "${APP_OUT_DIR}/resources/codex"
+          file "${APP_OUT_DIR}/resources/codex" | grep -E "ELF"
+          test -x "${APP_OUT_DIR}/resources/bin/codex"
+          ls -l "${APP_OUT_DIR}/resources/bin/codex"
+          file "${APP_OUT_DIR}/resources/bin/codex"
+          file "${APP_OUT_DIR}/resources/bin/codex" | grep -E "ELF"
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
