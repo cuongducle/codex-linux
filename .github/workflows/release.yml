@@ -108,6 +108,27 @@ jobs:
             --linux deb AppImage \
             --${{ matrix.arch }}
 
+      - name: Normalize artifact names
+        env:
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG_NAME#v}"
+          if [[ "${{ matrix.arch }}" == "x64" ]]; then
+            CANON_ARCH="amd64"
+          elif [[ "${{ matrix.arch }}" == "arm64" ]]; then
+            CANON_ARCH="arm64"
+          else
+            echo "Unsupported matrix arch: ${{ matrix.arch }}" >&2
+            exit 1
+          fi
+
+          DEB_FILE="$(ls -1 dist/*.deb | head -n1)"
+          APPIMAGE_FILE="$(ls -1 dist/*.AppImage | head -n1)"
+
+          mv -f "${DEB_FILE}" "dist/codex-desktop-${VERSION}-linux-${CANON_ARCH}.deb"
+          mv -f "${APPIMAGE_FILE}" "dist/codex-desktop-${VERSION}-linux-${CANON_ARCH}.AppImage"
+
       - name: Verify packaged CLI binary
         env:
           APP_OUT_DIR: ${{ matrix.arch == 'arm64' && 'dist/linux-arm64-unpacked' || 'dist/linux-unpacked' }}
