@@ -76,6 +76,9 @@ if [[ ! -d "${ROOT_DIR}/node_modules" ]]; then
   )
 fi
 
+echo "Rebuilding native modules for Linux packaging..."
+bash "${ROOT_DIR}/scripts/internal/build-native.sh"
+
 echo "Building target: ${TARGET}"
 (
   cd "${ROOT_DIR}"

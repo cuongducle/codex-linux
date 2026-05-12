@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-APP_DIR="${ROOT_DIR}/app_asar"
-BUILD_DIR="${ROOT_DIR}/build_native"
+APP_DIR="${APP_DIR:-${ROOT_DIR}/app_asar}"
+BUILD_DIR="${BUILD_DIR:-${ROOT_DIR}/build_native}"
+NATIVE_ARCH="${NATIVE_ARCH:-${npm_config_arch:-$(node -p "process.arch")}}"
 
 if [[ ! -d "${APP_DIR}" ]]; then
   echo "Missing ${APP_DIR}. Run scripts/setup.sh first." >&2
@@ -17,7 +18,11 @@ fi
 
 ELECTRON_VERSION="${ELECTRON_VERSION:-}"
 if [[ -z "${ELECTRON_VERSION}" ]]; then
-  ELECTRON_VERSION="$(node -p "require('${APP_DIR}/package.json').devDependencies.electron || require('${ROOT_DIR}/node_modules/electron/package.json').version")"
+  ELECTRON_VERSION="$(node -e "
+const appPkg = require(process.argv[1]);
+const rootElectron = require(process.argv[2]).version;
+console.log(appPkg.devDependencies?.electron || appPkg.dependencies?.electron || rootElectron);
+" "${APP_DIR}/package.json" "${ROOT_DIR}/node_modules/electron/package.json")"
 fi
 
 BETTER_SQLITE3_VERSION="$(node -p "require('${APP_DIR}/node_modules/better-sqlite3/package.json').version")"
@@ -41,10 +46,10 @@ echo "Installing native build dependencies into ${BUILD_DIR}..."
     "@electron/rebuild"
 )
 
-echo "Rebuilding better-sqlite3 and node-pty for Electron ${ELECTRON_VERSION}..."
+echo "Rebuilding better-sqlite3 and node-pty for Electron ${ELECTRON_VERSION} (${NATIVE_ARCH})..."
 (
   cd "${BUILD_DIR}"
-  npx electron-rebuild -v "${ELECTRON_VERSION}" -f --build-from-source -w better-sqlite3,node-pty
+  npx electron-rebuild -v "${ELECTRON_VERSION}" -a "${NATIVE_ARCH}" -f --build-from-source -w better-sqlite3,node-pty
 )
 
 echo "Copying rebuilt native binaries into app_asar..."
@@ -53,5 +58,15 @@ cp -f "${BUILD_DIR}/node_modules/better-sqlite3/build/Release/better_sqlite3.nod
   "${APP_DIR}/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
 cp -f "${BUILD_DIR}/node_modules/node-pty/build/Release/pty.node" \
   "${APP_DIR}/node_modules/node-pty/build/Release/pty.node"
+if [[ -f "${BUILD_DIR}/node_modules/node-pty/build/Release/spawn-helper" ]]; then
+  cp -f "${BUILD_DIR}/node_modules/node-pty/build/Release/spawn-helper" \
+    "${APP_DIR}/node_modules/node-pty/build/Release/spawn-helper"
+  chmod 0755 "${APP_DIR}/node_modules/node-pty/build/Release/spawn-helper"
+else
+  rm -f "${APP_DIR}/node_modules/node-pty/build/Release/spawn-helper"
+fi
+rm -f \
+  "${APP_DIR}/node_modules/better-sqlite3/.codex-native-module-build.json" \
+  "${APP_DIR}/node_modules/node-pty/.codex-native-module-build.json"
 
 echo "Done rebuilding native modules."
