@@ -19,9 +19,8 @@ fi
 ELECTRON_VERSION="${ELECTRON_VERSION:-}"
 if [[ -z "${ELECTRON_VERSION}" ]]; then
   ELECTRON_VERSION="$(node -e "
-const appPkg = require(process.argv[1]);
 const rootElectron = require(process.argv[2]).version;
-console.log(appPkg.devDependencies?.electron || appPkg.dependencies?.electron || rootElectron);
+console.log(rootElectron);
 " "${APP_DIR}/package.json" "${ROOT_DIR}/node_modules/electron/package.json")"
 fi
 
