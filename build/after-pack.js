@@ -19,7 +19,7 @@ module.exports = async function afterPack(context) {
     fs.renameSync(executablePath, binaryPath);
   }
 
-  const wrapper = String.raw`#!/usr/bin/env bash
+  const wrapper = `#!/usr/bin/env bash
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$(readlink -f "\${BASH_SOURCE[0]}")")" && pwd)"
