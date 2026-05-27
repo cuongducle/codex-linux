@@ -37,8 +37,6 @@ find_codex_cli() {
   fi
 
   local candidates=(
-    "\${APP_DIR}/resources/codex"
-    "\${APP_DIR}/resources/bin/codex"
     "\${HOME}/.local/bin/codex"
     "\${HOME}/.cargo/bin/codex"
     "/usr/local/bin/codex"
@@ -50,6 +48,11 @@ find_codex_cli() {
   for node_bin in "\${HOME}"/.nvm/versions/node/*/bin/codex; do
     [[ -x "\${node_bin}" ]] && candidates+=("\${node_bin}")
   done
+
+  candidates+=(
+    "\${APP_DIR}/resources/codex"
+    "\${APP_DIR}/resources/bin/codex"
+  )
 
   local candidate
   for candidate in "\${candidates[@]}"; do
