@@ -22,12 +22,12 @@ module.exports = async function afterPack(context) {
   const wrapper = String.raw`#!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$(dirname "$(readlink -f "\${BASH_SOURCE[0]}")")" && pwd)"
 ELECTRON_BIN="\${APP_DIR}/__EXECUTABLE_NAME__.bin"
 
 find_codex_cli() {
   if [[ -n "\${CODEX_CLI_PATH:-}" && -x "\${CODEX_CLI_PATH}" ]]; then
-    printf '%s\\n' "\${CODEX_CLI_PATH}"
+    echo "\${CODEX_CLI_PATH}"
     return 0
   fi
 
@@ -57,7 +57,7 @@ find_codex_cli() {
   local candidate
   for candidate in "\${candidates[@]}"; do
     if [[ -x "\${candidate}" ]]; then
-      printf '%s\\n' "\${candidate}"
+      echo "\${candidate}"
       return 0
     fi
   done
