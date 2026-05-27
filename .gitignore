@@ -3,6 +3,7 @@ Codex.dmg
 app_asar/
 work_dmg/
 build_native/
+build_native_opt/
 node_modules/
 tools/
 dist/

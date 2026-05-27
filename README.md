@@ -61,6 +61,24 @@ npm run build:linux
 
 Output artifacts are in `dist/`.
 
+### 1.1) Verify a fresh install
+
+After installing a newly built `.deb` or launching an AppImage on a clean machine, run:
+
+```bash
+bash scripts/smoke-verify.sh
+```
+
+The smoke script verifies that `codex-desktop` resolves to the expected launcher, prints the desktop entry `Exec` lines, checks the Codex CLI path, starts the app with Electron logging enabled, and fails if bootstrap errors such as `app server has not been initialized` appear.
+
+For packaged installs, the app executable is a wrapper that resolves `CODEX_CLI_PATH`, disables Vulkan by default, prefers X11 by default, and then launches the real Electron binary (`codex-desktop.bin`). Override graphics defaults only when needed:
+
+```bash
+CODEX_USE_X11=0 codex-desktop
+CODEX_DISABLE_VULKAN=0 codex-desktop
+CODEX_GL_BACKEND=desktop codex-desktop
+```
+
 ### 2) Publish release
 
 Push a version tag:

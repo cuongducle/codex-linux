@@ -16,6 +16,7 @@ extraResources:
       - "**/*"
 asar: false
 npmRebuild: false
+afterPack: build/after-pack.js
 linux:
   icon: assets/icons/linux
   category: Development

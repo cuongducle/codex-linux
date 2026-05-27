@@ -83,8 +83,17 @@ fi
 if [[ -z "\${CODEX_CLI_PATH:-}" ]]; then
   if command -v codex >/dev/null 2>&1; then
     CODEX_CLI_PATH="\$(command -v codex)"
+  elif [[ -x "\${ROOT_DIR}/app_resources/bin/codex" ]]; then
+    CODEX_CLI_PATH="\${ROOT_DIR}/app_resources/bin/codex"
+  elif [[ -x "\${HOME}/.local/bin/codex" ]]; then
+    CODEX_CLI_PATH="\${HOME}/.local/bin/codex"
+  elif [[ -x "\${HOME}/.cargo/bin/codex" ]]; then
+    CODEX_CLI_PATH="\${HOME}/.cargo/bin/codex"
+  elif [[ -n "\$(compgen -G "\${HOME}/.nvm/versions/node/*/bin/codex" || true)" ]]; then
+    CODEX_CLI_PATH="\$(compgen -G "\${HOME}/.nvm/versions/node/*/bin/codex" | sort -Vr | head -1)"
   else
     echo "CODEX_CLI_PATH is not set and codex is not on PATH." >&2
+    echo "Install Codex CLI first, or set CODEX_CLI_PATH=/path/to/codex." >&2
     exit 1
   fi
 fi
