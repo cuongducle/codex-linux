@@ -22,7 +22,7 @@ Release page: https://github.com/cuongducle/codex-linux/releases/latest
 3. Install:
 
 ```bash
-sudo apt install ./codex-desktop-*.deb
+sudo dpkg -i ./codex-desktop-*.deb
 ```
 
 ### Option 2: Any Distro (`.AppImage`)
