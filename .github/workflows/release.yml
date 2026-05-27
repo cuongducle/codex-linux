@@ -133,6 +133,9 @@ jobs:
         env:
           APP_OUT_DIR: ${{ matrix.arch == 'arm64' && 'dist/linux-arm64-unpacked' || 'dist/linux-unpacked' }}
         run: |
+          test -x "${APP_OUT_DIR}/codex-desktop"
+          test -x "${APP_OUT_DIR}/codex-desktop.bin"
+          head -n 1 "${APP_OUT_DIR}/codex-desktop" | grep -F "#!/usr/bin/env bash"
           test -x "${APP_OUT_DIR}/resources/codex"
           ls -l "${APP_OUT_DIR}/resources/codex"
           file "${APP_OUT_DIR}/resources/codex"
