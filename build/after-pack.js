@@ -114,16 +114,17 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
   }
 
   // Hide the native menu bar and fix black transparent background on Linux
-  const buildDir = path.join(appOutDir, 'resources', 'app', '.vite', 'build');
+  let buildDir = path.join(appOutDir, 'resources', 'app', '.vite', 'build');
   const bootstrapPath = path.join(buildDir, 'bootstrap.js');
   if (fs.existsSync(bootstrapPath)) {
     let content = fs.readFileSync(bootstrapPath, 'utf8');
-    const inject = `(()=>{const {app,nativeTheme}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;const updateBg=()=>{try{w.setBackgroundColor(nativeTheme.shouldUseDarkColors?"#1c1c1e":"#f5f5f7");}catch(err){}};updateBg();nativeTheme.on("updated",updateBg);});})();`;
+    const inject = `(()=>{const {app,nativeTheme}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;const updateBg=()=>{try{const bg=nativeTheme.shouldUseDarkColors?"#1e1e1e":"#ffffff";w.setBackgroundColor(bg);w.webContents.insertCSS(\`* { backdrop-filter: none !important; } aside, nav, [class*="sidebar"] { background-color: \${bg} !important; }\`);}catch(err){}};w.webContents.on("dom-ready",updateBg);updateBg();nativeTheme.on("updated",updateBg);});})();`;
     if (!content.includes('setMenuBarVisibility')) {
       content = content.replace('require("electron");', `require("electron");${inject}`);
       fs.writeFileSync(bootstrapPath, content);
-    } else if (content.includes('w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});')) {
-      content = content.replace('require("electron").app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});', inject);
+    } else if (content.includes('const updateBg=()=>{try{w.setBackgroundColor')) {
+      // Replace the previous injection with the new one
+      content = content.replace(/\(\(\)=>\{const \{app,nativeTheme\}=require\("electron"\);app\.on\("browser-window-created",\(e,w\)=>\{w\.setMenuBarVisibility\(false\);w\.autoHideMenuBar=true;const updateBg=\(\)=>\{try\{w\.setBackgroundColor.*?\}\)\(\);/g, inject);
       fs.writeFileSync(bootstrapPath, content);
     }
   }
