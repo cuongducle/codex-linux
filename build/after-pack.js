@@ -112,4 +112,15 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
       .replace(/^Exec=.*$/gm, `Exec=${executableName} %U`);
     fs.writeFileSync(desktopFile, desktop);
   }
+
+  // Hide the native menu bar to prevent flickering and black rendering issues on Linux
+  const bootstrapPath = path.join(appOutDir, 'resources', 'app', '.vite', 'build', 'bootstrap.js');
+  if (fs.existsSync(bootstrapPath)) {
+    let content = fs.readFileSync(bootstrapPath, 'utf8');
+    const inject = `require("electron").app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});`;
+    if (!content.includes('setMenuBarVisibility')) {
+      content = content.replace('require("electron");', `require("electron");${inject}`);
+      fs.writeFileSync(bootstrapPath, content);
+    }
+  }
 };
