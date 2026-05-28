@@ -114,17 +114,17 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
   }
 
   // Hide the native menu bar and fix black transparent background on Linux
-  let buildDir = path.join(appOutDir, 'resources', 'app', '.vite', 'build');
+  const buildDir = path.join(appOutDir, 'resources', 'app', '.vite', 'build');
   const bootstrapPath = path.join(buildDir, 'bootstrap.js');
   if (fs.existsSync(bootstrapPath)) {
     let content = fs.readFileSync(bootstrapPath, 'utf8');
-    const inject = `(()=>{const {app,nativeTheme}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;const updateBg=()=>{try{const bg=nativeTheme.shouldUseDarkColors?"#1e1e1e":"#ffffff";w.setBackgroundColor(bg);w.webContents.insertCSS(\`* { backdrop-filter: none !important; } aside, nav, [class*="sidebar"] { background-color: \${bg} !important; }\`);}catch(err){}};w.webContents.on("dom-ready",updateBg);updateBg();nativeTheme.on("updated",updateBg);});})();`;
+    const inject = `(()=>{const {app}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;w.webContents.on("dom-ready",()=>{w.webContents.executeJavaScript(\`(function(){const style=document.createElement('style');document.head.appendChild(style);function updateColors(){const bg=window.getComputedStyle(document.body).backgroundColor;const rgb=bg.match(/\\\d+/g);if(rgb&&rgb.length>=3){const isDark=(rgb[0]*0.299+rgb[1]*0.587+rgb[2]*0.114)<128;const sidebarBg=isDark?'#1e1e1e':'#f5f5f7';style.textContent='* { backdrop-filter: none !important; } aside, nav, [class*="sidebar"], [class*="Sidebar"] { background-color: '+sidebarBg+' !important; }';}}updateColors();setInterval(updateColors, 1000);})();\`).catch(()=>{});});});})();`;
     if (!content.includes('setMenuBarVisibility')) {
       content = content.replace('require("electron");', `require("electron");${inject}`);
       fs.writeFileSync(bootstrapPath, content);
-    } else if (content.includes('const updateBg=()=>{try{w.setBackgroundColor')) {
+    } else if (content.includes('const updateBg=()=>{try{')) {
       // Replace the previous injection with the new one
-      content = content.replace(/\(\(\)=>\{const \{app,nativeTheme\}=require\("electron"\);app\.on\("browser-window-created",\(e,w\)=>\{w\.setMenuBarVisibility\(false\);w\.autoHideMenuBar=true;const updateBg=\(\)=>\{try\{w\.setBackgroundColor.*?\}\)\(\);/g, inject);
+      content = content.replace(/\(\(\)=>\{const \{app,nativeTheme\}=require\("electron"\);app\.on\("browser-window-created",\(e,w\)=>\{w\.setMenuBarVisibility\(false\);w\.autoHideMenuBar=true;const updateBg=\(\)=>\{try\{.*?\}\)\(\);/g, inject);
       fs.writeFileSync(bootstrapPath, content);
     }
   }
