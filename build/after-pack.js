@@ -114,7 +114,8 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
   }
 
   // Hide the native menu bar and fix black transparent background on Linux
-  const bootstrapPath = path.join(appOutDir, 'resources', 'app', '.vite', 'build', 'bootstrap.js');
+  const buildDir = path.join(appOutDir, 'resources', 'app', '.vite', 'build');
+  const bootstrapPath = path.join(buildDir, 'bootstrap.js');
   if (fs.existsSync(bootstrapPath)) {
     let content = fs.readFileSync(bootstrapPath, 'utf8');
     const inject = `(()=>{const {app,nativeTheme}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;const updateBg=()=>{try{w.setBackgroundColor(nativeTheme.shouldUseDarkColors?"#1c1c1e":"#f5f5f7");}catch(err){}};updateBg();nativeTheme.on("updated",updateBg);});})();`;
@@ -122,9 +123,31 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
       content = content.replace('require("electron");', `require("electron");${inject}`);
       fs.writeFileSync(bootstrapPath, content);
     } else if (content.includes('w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});')) {
-      // Upgrade the previous simple injection to the new one
       content = content.replace('require("electron").app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});', inject);
       fs.writeFileSync(bootstrapPath, content);
+    }
+  }
+
+  // Force disable BrowserWindow transparency to avoid black rectangles when using software rendering
+  if (fs.existsSync(buildDir)) {
+    const files = fs.readdirSync(buildDir);
+    for (const file of files) {
+      if (file.endsWith('.js')) {
+        const filePath = path.join(buildDir, file);
+        let content = fs.readFileSync(filePath, 'utf8');
+        let modified = false;
+        if (content.includes('transparent:!0')) {
+          content = content.replace(/transparent:!0/g, 'transparent:!1');
+          modified = true;
+        }
+        if (content.includes('transparent:true')) {
+          content = content.replace(/transparent:true/g, 'transparent:false');
+          modified = true;
+        }
+        if (modified) {
+          fs.writeFileSync(filePath, content);
+        }
+      }
     }
   }
 };
