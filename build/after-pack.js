@@ -113,13 +113,17 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
     fs.writeFileSync(desktopFile, desktop);
   }
 
-  // Hide the native menu bar to prevent flickering and black rendering issues on Linux
+  // Hide the native menu bar and fix black transparent background on Linux
   const bootstrapPath = path.join(appOutDir, 'resources', 'app', '.vite', 'build', 'bootstrap.js');
   if (fs.existsSync(bootstrapPath)) {
     let content = fs.readFileSync(bootstrapPath, 'utf8');
-    const inject = `require("electron").app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});`;
+    const inject = `(()=>{const {app,nativeTheme}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;const updateBg=()=>{try{w.setBackgroundColor(nativeTheme.shouldUseDarkColors?"#1c1c1e":"#f5f5f7");}catch(err){}};updateBg();nativeTheme.on("updated",updateBg);});})();`;
     if (!content.includes('setMenuBarVisibility')) {
       content = content.replace('require("electron");', `require("electron");${inject}`);
+      fs.writeFileSync(bootstrapPath, content);
+    } else if (content.includes('w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});')) {
+      // Upgrade the previous simple injection to the new one
+      content = content.replace('require("electron").app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;});', inject);
       fs.writeFileSync(bootstrapPath, content);
     }
   }
