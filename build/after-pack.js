@@ -271,15 +271,24 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
   const bootstrapPath = path.join(buildDir, 'bootstrap.js');
   if (fs.existsSync(bootstrapPath)) {
     let content = fs.readFileSync(bootstrapPath, 'utf8');
+    //
+    // The injection is prepended to the file rather than spliced after a
+    // `require("electron")` call: depending on the upstream build that require
+    // appears as `require("electron");` (standalone) or `let r=require(`electron`)`
+    // (mid-expression, where splicing would break syntax). The injected IIFE
+    // pulls in electron itself and only registers an app listener, so running it
+    // first is always safe. The guard uses the unique `codex-linux-fix` marker —
+    // NOT `setMenuBarVisibility`, which upstream code already contains and which
+    // previously made this whole block silently skip injection.
     const inject = `(()=>{const {app}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;w.webContents.on("dom-ready",()=>{w.webContents.executeJavaScript(\`(function(){var id="codex-linux-fix";if(document.getElementById(id))return;var s=document.createElement("style");s.id=id;s.textContent="html.electron-dark,html.electron-light{background-color:var(--color-background-surface-under)!important}body{background:var(--color-background-surface-under)!important}.app-shell-left-panel,aside,nav,[class*=sidebar],[class*=Sidebar]{background-color:var(--color-background-surface)!important;transition:none!important;backdrop-filter:none!important}";(document.head||document.documentElement).appendChild(s);})();\`).catch(()=>{});});});})();`;
-    if (!content.includes('setMenuBarVisibility')) {
-      // Inject autoUpdater no-op right after the menu bar injection
-      const autoUpdaterNoop = `(()=>{const _r=require;const _req=_r.bind(module);const _m=new Proxy({},{get:(t,k)=>k==="autoUpdater"?{checkForUpdates:()=>Promise.resolve(),checkForUpdatesAndNotify:()=>Promise.resolve(),getAutoUpdateAndNotifyPromise:()=>Promise.resolve(),quitAndInstall:()=>{},on:()=>({}),once:()=>({}),removeAllListeners:()=>({})}:undefined});Object.defineProperty(module,"exports",{get:()=>_m,set:(v)=>{},configurable:true});})();`;
-      content = content.replace('require("electron");', `require("electron");${inject}${autoUpdaterNoop}`);
-      fs.writeFileSync(bootstrapPath, content);
-    } else if (content.includes('const updateBg=()=>{try{')) {
-      // Replace the previous injection with the new one
-      content = content.replace(/\(\(\)=>\{const \{app,nativeTheme\}=require\("electron"\);app\.on\("browser-window-created",\(e,w\)=>\{w\.setMenuBarVisibility\(false\);w\.autoHideMenuBar=true;const updateBg=\(\)=>\{try\{.*?\}\)\(\);/g, inject);
+    if (!content.includes('codex-linux-fix')) {
+      // Keep any leading "use strict"; directive first so it stays in effect.
+      const prologue = content.match(/^\s*(["'])use strict\1\s*;?/);
+      if (prologue) {
+        content = prologue[0] + inject + content.slice(prologue[0].length);
+      } else {
+        content = inject + content;
+      }
       fs.writeFileSync(bootstrapPath, content);
     }
   }
