@@ -237,6 +237,11 @@ jobs:
           </urlset>
           SITEMAPEOF
 
+          # Generate IndexNow key file (https://www.indexnow.org/)
+          cat > apt-public/codex-linux-seo-2026.txt <<KEYEOF
+          codex-linux-seo-2026
+          KEYEOF
+
       - name: Publish APT repo to gh-pages
         if: matrix.arch == 'x64'
         uses: peaceiris/actions-gh-pages@v4
