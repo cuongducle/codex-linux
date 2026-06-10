@@ -89,7 +89,7 @@ if [[ -z "\${CODEX_CLI_PATH:-}" ]]; then
     CODEX_CLI_PATH="\${HOME}/.cargo/bin/codex"
   elif [[ -n "\$(compgen -G "\${HOME}/.nvm/versions/node/*/bin/codex" || true)" ]]; then
     CODEX_CLI_PATH="\$(compgen -G "\${HOME}/.nvm/versions/node/*/bin/codex" | sort -Vr | head -1)"
-  elif [[ -x "\${ROOT_DIR}/app_resources/bin/codex" ]]; then
+  elif [[ -x "\${ROOT_DIR}/app_resources/bin/codex" ]] && "\${ROOT_DIR}/app_resources/bin/codex" --version >/dev/null 2>&1; then
     CODEX_CLI_PATH="\${ROOT_DIR}/app_resources/bin/codex"
   else
     echo "CODEX_CLI_PATH is not set and codex is not on PATH." >&2
