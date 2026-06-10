@@ -187,6 +187,8 @@ jobs:
             <meta name="twitter:card" content="summary" />
             <meta name="twitter:title" content="Install Codex Desktop on Linux" />
             <meta name="twitter:description" content="Unofficial native packages for OpenAI Codex Desktop on Ubuntu, Debian, and any Linux distro." />
+            <!-- Google Search Console verification - replace YOUR_VERIFICATION_CODE below -->
+            <!-- <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> -->
             <style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#333}h1{border-bottom:2px solid #10a37f;padding-bottom:.5rem}a{color:#10a37f}pre{background:#f6f8fa;padding:1rem;border-radius:6px;overflow-x:auto}code{font-family:monospace;font-size:.9em}</style>
           </head>
           <body>
@@ -202,6 +204,38 @@ jobs:
           </body>
           </html>
           EOF
+
+          # Generate robots.txt
+          cat > apt-public/robots.txt <<ROBOTSEOF
+          User-agent: *
+          Allow: /
+          Sitemap: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/sitemap.xml
+          ROBOTSEOF
+
+          # Generate sitemap.xml
+          cat > apt-public/sitemap.xml <<SITEMAPEOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/</loc>
+              <lastmod>$(date -u +%Y-%m-%d)</lastmod>
+              <changefreq>weekly</changefreq>
+              <priority>1.0</priority>
+            </url>
+            <url>
+              <loc>https://github.com/${{ github.repository }}/${{ github.event.repository.name }}</loc>
+              <lastmod>$(date -u +%Y-%m-%d)</lastmod>
+              <changefreq>weekly</changefreq>
+              <priority>0.9</priority>
+            </url>
+            <url>
+              <loc>https://github.com/${{ github.repository }}/${{ github.event.repository.name }}/releases/latest</loc>
+              <lastmod>$(date -u +%Y-%m-%d)</lastmod>
+              <changefreq>weekly</changefreq>
+              <priority>0.8</priority>
+            </url>
+          </urlset>
+          SITEMAPEOF
 
       - name: Publish APT repo to gh-pages
         if: matrix.arch == 'x64'
