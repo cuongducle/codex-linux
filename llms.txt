@@ -1,0 +1,55 @@
+# Codex Desktop for Linux
+
+> Unofficial native Linux packaging for OpenAI Codex Desktop — .deb and AppImage with Wayland support, auto-updates, and APT repository.
+
+## Project
+
+- Repository: https://github.com/cuongducle/codex-linux
+- License: MIT
+- Status: Active, daily upstream monitoring
+- Platforms: Ubuntu/Debian 22.04+ (amd64, arm64), any Linux distro via AppImage
+
+## What It Does
+
+Patches the upstream macOS Codex Desktop build for Linux: rebuilds native modules (better-sqlite3, node-pty), applies Linux-specific patches (Wayland, sandbox, AppArmor), and packages as .deb and .AppImage.
+
+## Installation
+
+### APT Repository (recommended for Ubuntu/Debian)
+```bash
+echo "deb [trusted=yes] https://cuongducle.github.io/codex-linux/ stable main" \
+  | sudo tee /etc/apt/sources.list.d/codex-desktop.list
+sudo apt update && sudo apt install codex-desktop
+```
+
+### One-line Install
+```bash
+curl -fsSL https://cuongducle.github.io/codex-linux/install.sh | sudo bash
+```
+
+### AppImage (any distro)
+```bash
+wget https://github.com/cuongducle/codex-linux/releases/latest/download/codex-desktop-linux-x86_64.AppImage
+chmod +x codex-desktop-linux-x86_64.AppImage
+./codex-desktop-linux-x86_64.AppImage
+```
+
+## Key Features
+
+- Native .deb and AppImage packaging
+- Wayland support with auto-detection
+- Auto-updates via daily upstream monitoring
+- APT repository for Ubuntu/Debian
+- Chromium sandbox handling (setuid + AppArmor)
+- System integration (desktop entry, icons, AppStream metainfo)
+- Built-in `codex-desktop --doctor` diagnostics
+
+## Important
+
+This is an unofficial build, not affiliated with OpenAI. No Codex source code is redistributed — only packaging scripts.
+
+## Links
+
+- Releases: https://github.com/cuongducle/codex-linux/releases
+- Issues: https://github.com/cuongducle/codex-linux/issues
+- APT Repo: https://cuongducle.github.io/codex-linux/

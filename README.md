@@ -6,10 +6,10 @@
 
 **Unofficial native Linux packaging for OpenAI Codex Desktop**
 
-[![Latest Release](https://img.shields.io/github/v/release/cuongducle/codex-linux?style=flat-square&label=release)](https://github.com/cuongducle/codex-linux/releases/latest)
-[![Build](https://img.shields.io/github/actions/workflow/status/cuongducle/codex-linux/release.yml?style=flat-square&branch=main)](https://github.com/cuongducle/codex-linux/actions)
-[![APT Repo](https://img.shields.io/badge/APT-install%20via%20repo-blue?style=flat-square)](#apt-repository-auto-updates)
-[![Platform](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-lightgrey?style=flat-square)](#supported-platforms)
+[![Latest Release Version](https://img.shields.io/github/v/release/cuongducle/codex-linux?style=flat-square&label=release)](https://github.com/cuongducle/codex-linux/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/cuongducle/codex-linux/release.yml?style=flat-square&branch=main)](https://github.com/cuongducle/codex-linux/actions)
+[![APT Repository](https://img.shields.io/badge/APT-install%20via%20repo-blue?style=flat-square)](#apt-repository-auto-updates)
+[![Platform Support](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-lightgrey?style=flat-square)](#supported-platforms)
 
 Codex Desktop is OpenAI's AI-powered coding agent — shipped as an Electron app with
 **no official Linux release**. This project takes the upstream macOS build, patches it for
