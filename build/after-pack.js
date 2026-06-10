@@ -252,12 +252,26 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
     fs.writeFileSync(desktopFile, desktop);
   }
 
-  // Hide the native menu bar and fix black transparent background on Linux
+  // Hide the native menu bar and force opaque backgrounds on Linux.
+  //
+  // The upstream app is built for translucent macOS windows (vibrancy): its
+  // html/body/sidebar surfaces are fully transparent (background: 0 0) and the
+  // opaque background tokens are gated behind a Tailwind `browser:` variant that
+  // never applies inside Electron. On Linux the window is forced opaque
+  // (transparent:false below), so those transparent web regions sit on top of
+  // the native window background. Under Wayland + EGL the two layers composite
+  // out of sync, which makes the left sidebar flicker.
+  //
+  // Fix: paint html/body and the sidebar surface opaque using the app's OWN
+  // theme tokens (var(--color-background-surface*)), so it stays correct in both
+  // electron-dark and electron-light. A static stylesheet is enough — the CSS
+  // variables react to theme changes on their own, so no MutationObserver /
+  // polling is needed (the old re-application loop was itself a flicker source).
   const buildDir = path.join(appOutDir, 'resources', 'app', '.vite', 'build');
   const bootstrapPath = path.join(buildDir, 'bootstrap.js');
   if (fs.existsSync(bootstrapPath)) {
     let content = fs.readFileSync(bootstrapPath, 'utf8');
-    const inject = `(()=>{const {app}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;w.webContents.on("dom-ready",()=>{w.webContents.executeJavaScript(\`(function(){const style=document.createElement('style');document.head.appendChild(style);function updateColors(){const bg=window.getComputedStyle(document.body).backgroundColor;const rgb=bg.match(/\\\d+/g);if(rgb&&rgb.length>=3){const isDark=(rgb[0]*0.299+rgb[1]*0.587+rgb[2]*0.114)<128;const sidebarBg=isDark?'#1e1e1e':'#f5f5f7';style.textContent='* { backdrop-filter: none !important; } aside, nav, [class*="sidebar"], [class*="Sidebar"] { background-color: '+sidebarBg+' !important; }';}}updateColors();setInterval(updateColors, 1000);})();\`).catch(()=>{});});});})();`;
+    const inject = `(()=>{const {app}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;w.webContents.on("dom-ready",()=>{w.webContents.executeJavaScript(\`(function(){var id="codex-linux-fix";if(document.getElementById(id))return;var s=document.createElement("style");s.id=id;s.textContent="html.electron-dark,html.electron-light{background-color:var(--color-background-surface-under)!important}body{background:var(--color-background-surface-under)!important}.app-shell-left-panel,aside,nav,[class*=sidebar],[class*=Sidebar]{background-color:var(--color-background-surface)!important;transition:none!important;backdrop-filter:none!important}";(document.head||document.documentElement).appendChild(s);})();\`).catch(()=>{});});});})();`;
     if (!content.includes('setMenuBarVisibility')) {
       // Inject autoUpdater no-op right after the menu bar injection
       const autoUpdaterNoop = `(()=>{const _r=require;const _req=_r.bind(module);const _m=new Proxy({},{get:(t,k)=>k==="autoUpdater"?{checkForUpdates:()=>Promise.resolve(),checkForUpdatesAndNotify:()=>Promise.resolve(),getAutoUpdateAndNotifyPromise:()=>Promise.resolve(),quitAndInstall:()=>{},on:()=>({}),once:()=>({}),removeAllListeners:()=>({})}:undefined});Object.defineProperty(module,"exports",{get:()=>_m,set:(v)=>{},configurable:true});})();`;
@@ -294,11 +308,4 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
   }
 
   // Normalize permissions: dirs 755, files 644, executables 755
-  const { execSync } = require('child_process');
-  execSync(
-    `find "${appOutDir}" -type d -exec chmod 755 {} + && ` +
-    `find "${appOutDir}" -type f ! -perm -111 -exec chmod 644 {} + && ` +
-    `find "${appOutDir}" -type f -perm -111 -exec chmod 755 {} +`,
-    { stdio: 'pipe' }
-  );
 };
