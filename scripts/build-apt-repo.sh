@@ -41,6 +41,13 @@ RELEASE_FILE="${REPO_DIR}/dists/stable/Release"
   cd "${REPO_DIR}"
   dpkg-scanpackages --multiversion pool /dev/null > "${PACKAGES_FILE#${REPO_DIR}/}"
 )
+
+# If RELEASES_BASE_URL is set, rewrite Filename: to point to GitHub Releases
+# so the .deb is served from there instead of being bundled in gh-pages (avoids 100MB limit).
+if [[ -n "${RELEASES_BASE_URL:-}" ]]; then
+  sed -i "s|^Filename: pool/main/c/${PACKAGE_NAME}/|Filename: ${RELEASES_BASE_URL}/|" "${PACKAGES_FILE}"
+fi
+
 gzip -9 -c "${PACKAGES_FILE}" > "${PACKAGES_GZ_FILE}"
 
 packages_rel="main/binary-amd64/Packages"
@@ -68,6 +75,11 @@ SHA256:
  ${packages_sha256} ${packages_size} ${packages_rel}
  ${packages_gz_sha256} ${packages_gz_size} ${packages_gz_rel}
 EOF
+
+# Remove bundled .deb files from pool when using external Releases URL
+if [[ -n "${RELEASES_BASE_URL:-}" ]]; then
+  rm -f "${REPO_DIR}/pool/main/c/${PACKAGE_NAME}"/*.deb
+fi
 
 echo "APT repository generated at: ${REPO_DIR}"
 echo "Package index: ${PACKAGES_FILE}"
