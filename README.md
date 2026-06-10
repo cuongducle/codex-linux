@@ -41,6 +41,32 @@ chmod +x codex-desktop-*-x86_64.AppImage
 - `.deb`: download and install the newer release file.
 - `.AppImage`: replace the old AppImage with the new release file.
 
+## Environment Variables
+
+The launcher supports these environment variables for customizing behavior:
+
+| Variable | Default | Description |
+|---|---|---|
+| `CODEX_USE_X11` | `0` | Force X11 backend (`1`) or auto-detect |
+| `CODEX_USE_WAYLAND` | `0` | Force Wayland backend (`1`) or auto-detect |
+| `CODEX_DISABLE_VULKAN` | `0` | Disable Vulkan (`1`) |
+| `CODEX_GL_BACKEND` | `egl` | OpenGL backend (`egl`, `desktop`, `swiftshader`) |
+| `CODEX_PASSWORD_STORE` | `basic` | Chromium password store (`basic`, `kwallet5`, `kwallet6`, `gnome-libsecret`) |
+| `CODEX_DISABLE_SANDBOX` | `0` | Disable Chromium sandbox (`1`) |
+| `CODEX_CLI_PATH` | auto-detected | Path to Codex CLI binary |
+
+**Display server auto-detection**: If `WAYLAND_DISPLAY` is set, the app launches with native Wayland support (including window decorations). Otherwise it falls back to X11. Override with `CODEX_USE_X11=1` or `CODEX_USE_WAYLAND=1`.
+
+## Doctor Command
+
+Run diagnostics without launching the app:
+
+```bash
+codex-desktop --doctor
+```
+
+This reports display server, GPU, sandbox status, CLI path resolution, platform info, and Electron version.
+
 ## Maintainer Flow (Build + Publish)
 
 ### 1) Build locally
@@ -67,16 +93,6 @@ After installing a newly built `.deb` or launching an AppImage on a clean machin
 
 ```bash
 bash scripts/smoke-verify.sh
-```
-
-The smoke script verifies that `codex-desktop` resolves to the expected launcher, prints the desktop entry `Exec` lines, checks the Codex CLI path, starts the app with Electron logging enabled, and fails if bootstrap errors such as `app server has not been initialized` appear.
-
-For packaged installs, the app executable is a wrapper that resolves `CODEX_CLI_PATH`, disables Vulkan by default, prefers X11 by default, and then launches the real Electron binary (`codex-desktop.bin`). Override graphics defaults only when needed:
-
-```bash
-CODEX_USE_X11=0 codex-desktop
-CODEX_DISABLE_VULKAN=0 codex-desktop
-CODEX_GL_BACKEND=desktop codex-desktop
 ```
 
 ### 2) Publish release
@@ -118,14 +134,21 @@ That new tag triggers the release workflow, which publishes new `.deb`, `.AppIma
 3. Add repository secret `RELEASE_PAT` (recommended):
 - Create a Personal Access Token with `repo` + `workflow` scopes.
 - Save it in repo Settings -> Secrets and variables -> Actions -> `RELEASE_PAT`.
-- This is used by daily update workflow to push tags that can trigger downstream release workflow.
 
 ## Features
 
 - Packaging targets: **DEB** and **AppImage** only
 - Linux native module rebuild (`better-sqlite3`, `node-pty`)
+- **Wayland auto-detection** with window decorations
+- **Stale SingletonLock cleanup** on startup
+- **autoUpdater no-op** (prevents upstream update checks for Linux)
+- **Password store fallback** (`basic`) for cookie encryption without keyring
+- **AppArmor profile** for `userns` support (Ubuntu 24.04+)
+- **`--doctor` diagnostic** command
+- **AppStream metainfo** for software center integration
+- **Deep-linking** via `x-scheme-handler/codex`
 - Release CI runs on current Ubuntu runners with `dmg2img` and `7zip`
-- Auto-upload release artifacts (`.deb`, `.AppImage`) to GitHub Releases
+- Auto-upload release artifacts to GitHub Releases
 - Optional APT repo publish on release tag
 
 ## Repository Structure
@@ -134,6 +157,9 @@ That new tag triggers the release workflow, which publishes new `.deb`, `.AppIma
 - `scripts/build-packages.sh` - Build DEB/AppImage via electron-builder
 - `scripts/build-apt-repo.sh` - Generate Debian repository metadata
 - `scripts/generate-apt-install-script.sh` - Generate public `install.sh`
+- `scripts/debian/` - DEB maintainer scripts (postinst, postrm)
+- `build/after-pack.js` - Electron post-pack hook (wrapper, patches, permissions)
+- `assets/metainfo/` - AppStream metainfo XML
 - `.github/workflows/release.yml` - CI build + release + APT publish
 - `electron-builder.yml` - Packaging config
 

@@ -25,6 +25,102 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "$(readlink -f "\${BASH_SOURCE[0]}")")" && pwd)"
 ELECTRON_BIN="\${APP_DIR}/__EXECUTABLE_NAME__.bin"
 
+# --- Config home resolution ---
+XDG_CONFIG_HOME="\${XDG_CONFIG_HOME:-\${HOME}/.config}"
+
+# --- SingletonLock stale cleanup ---
+cleanup_singleton_lock() {
+  local config_home="\${XDG_CONFIG_HOME}"
+  local lock_found=""
+  for candidate in "\${config_home}/Codex/SingletonLock" "\${config_home}/Codex Desktop/SingletonLock"; do
+    if [[ -L "\${candidate}" ]]; then
+      lock_found="\${candidate}"
+      break
+    fi
+  done
+  if [[ -n "\${lock_found}" ]]; then
+    local target
+    target="$(readlink "\${lock_found}")" || return 0
+    local pid
+    pid="\${target##*-}"
+    if [[ "\${pid}" =~ ^[0-9]+$ ]]; then
+      if ! kill -0 "\${pid}" 2>/dev/null; then
+        rm -f "\${lock_found}"
+      fi
+    fi
+  fi
+}
+
+# --- Doctor diagnostic ---
+run_doctor() {
+  echo "=== Codex Desktop Doctor Report ==="
+  echo ""
+
+  # Display server
+  echo "--- Display Server ---"
+  if [[ -n "\${WAYLAND_DISPLAY:-}" ]]; then
+    echo "  Wayland detected: WAYLAND_DISPLAY=\${WAYLAND_DISPLAY}"
+  else
+    echo "  Wayland: not detected (WAYLAND_DISPLAY unset)"
+  fi
+  if [[ -n "\${XDG_SESSION_TYPE:-}" ]]; then
+    echo "  XDG_SESSION_TYPE=\${XDG_SESSION_TYPE}"
+  else
+    echo "  XDG_SESSION_TYPE: unset"
+  fi
+  echo "  CODEX_USE_X11=\${CODEX_USE_X11:-unset}"
+  echo "  CODEX_USE_WAYLAND=\${CODEX_USE_WAYLAND:-unset}"
+  echo ""
+
+  # GPU info
+  echo "--- GPU ---"
+  echo "  CODEX_DISABLE_GPU=\${CODEX_DISABLE_GPU:-unset}"
+  echo "  CODEX_GL_BACKEND=\${CODEX_GL_BACKEND:-unset}"
+  echo ""
+
+  # Sandbox
+  echo "--- Sandbox ---"
+  local sandbox="\${APP_DIR}/chrome-sandbox"
+  if [[ -e "\${sandbox}" ]]; then
+    local sandbox_perms
+    sandbox_perms="$(stat -c '%a' "\${sandbox}" 2>/dev/null || echo 'unknown')"
+    echo "  chrome-sandbox path: \${sandbox}"
+    echo "  chrome-sandbox permissions: \${sandbox_perms}"
+    echo "  chrome-sandbox owner: $(stat -c '%U:%G' "\${sandbox}" 2>/dev/null || echo 'unknown')"
+  else
+    echo "  chrome-sandbox: not found at \${sandbox}"
+  fi
+  echo ""
+
+  # CLI resolution
+  echo "--- CLI ---"
+  CODEX_CLI_PATH="" find_codex_cli >/dev/null 2>&1 && {
+    echo "  Resolved CLI: $(find_codex_cli)"
+  } || {
+    echo "  CLI: NOT FOUND"
+  }
+  echo "  CODEX_CLI_PATH env: \${CODEX_CLI_PATH:-unset}"
+  echo ""
+
+  # Platform
+  echo "--- Platform ---"
+  echo "  OS: $(uname -s)"
+  echo "  Arch: $(uname -m)"
+  echo "  Kernel: $(uname -r)"
+  echo ""
+
+  # Electron
+  echo "--- Electron ---"
+  echo "  Binary: \${ELECTRON_BIN}"
+  if [[ -x "\${ELECTRON_BIN}" ]]; then
+    echo "  Status: executable"
+  else
+    echo "  Status: MISSING or not executable"
+  fi
+  echo ""
+  echo "=== End of Report ==="
+}
+
 find_codex_cli() {
   if [[ -n "\${CODEX_CLI_PATH:-}" && -x "\${CODEX_CLI_PATH}" ]]; then
     echo "\${CODEX_CLI_PATH}"
@@ -65,13 +161,21 @@ find_codex_cli() {
   return 1
 }
 
+# --- Handle --doctor flag ---
+for arg in "$@"; do
+  if [[ "\${arg}" == "--doctor" ]]; then
+    run_doctor
+    exit 0
+  fi
+done
+
 if ! CODEX_CLI_PATH="$(find_codex_cli)"; then
   cat >&2 <<'ERR'
 Codex Desktop could not find the Codex CLI.
 
 Install the CLI first, or launch with CODEX_CLI_PATH=/path/to/codex.
 Examples:
-  npm install -g @openai/codex
+  curl -fsSL https://chatgpt.com/codex/install.sh | sh
   CODEX_CLI_PATH="$(command -v codex)" codex-desktop
 ERR
   exit 127
@@ -83,21 +187,40 @@ export ELECTRON_FORCE_IS_PACKAGED="\${ELECTRON_FORCE_IS_PACKAGED:-1}"
 
 extra_args=()
 
+# --- Sandbox ---
 if [[ "\${CODEX_DISABLE_SANDBOX:-0}" == "1" ]]; then
   extra_args+=(--no-sandbox --disable-gpu-sandbox)
 fi
 
-if [[ "\${CODEX_USE_X11:-1}" == "1" ]]; then
+# --- Display server / Wayland ---
+if [[ "\${CODEX_USE_X11:-}" == "1" ]]; then
+  extra_args+=(--ozone-platform=x11)
+elif [[ "\${CODEX_USE_WAYLAND:-}" == "1" ]]; then
+  extra_args+=(--ozone-platform=wayland --enable-features=WaylandWindowDecorations)
+elif [[ -n "\${WAYLAND_DISPLAY:-}" ]]; then
+  extra_args+=(--ozone-platform=wayland --enable-features=WaylandWindowDecorations)
+else
   extra_args+=(--ozone-platform=x11)
 fi
-
-if [[ "\${CODEX_DISABLE_VULKAN:-1}" == "1" ]]; then
+# --- Vulkan: only disable if explicitly requested ---
+if [[ "\${CODEX_DISABLE_VULKAN:-}" == "1" ]]; then
   extra_args+=(--disable-features=Vulkan)
 fi
 
+# --- GL backend ---
 if [[ -n "\${CODEX_GL_BACKEND:-egl}" ]]; then
   extra_args+=(--use-gl="\${CODEX_GL_BACKEND:-egl}")
 fi
+
+# --- Password store ---
+if [[ -n "\${CODEX_PASSWORD_STORE:-}" ]]; then
+  extra_args+=(--password-store="\${CODEX_PASSWORD_STORE}")
+else
+  extra_args+=(--password-store=basic)
+fi
+
+# --- Clean stale SingletonLock before launch ---
+cleanup_singleton_lock
 
 exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
 `.replace(/__EXECUTABLE_NAME__/g, executableName);
@@ -108,8 +231,24 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
   const desktopFiles = fs.readdirSync(appOutDir).filter((file) => file.endsWith('.desktop'));
   for (const desktopFilename of desktopFiles) {
     const desktopFile = path.join(appOutDir, desktopFilename);
-    const desktop = fs.readFileSync(desktopFile, 'utf8')
-      .replace(/^Exec=.*$/gm, `Exec=${executableName} %U`);
+    let desktop = fs.readFileSync(desktopFile, 'utf8');
+
+    // Rewrite Exec line to include %U for URI handling
+    desktop = desktop.replace(/^Exec=.*$/gm, `Exec=${executableName} %U`);
+
+    // Add StartupWMClass if not already present
+    if (!desktop.includes('StartupWMClass')) {
+      desktop = desktop.replace(/(\n\[Desktop Action[^\]]*\]|$)/, 'StartupWMClass=Codex\n$1');
+    }
+
+    // Add MimeType for deep-linking if not already present
+    if (!desktop.includes('MimeType')) {
+      desktop = desktop.replace(/(\n\[Desktop Action[^\]]*\]|$)/, 'MimeType=x-scheme-handler/codex:;\n$1');
+    }
+
+    // Fix Categories
+    desktop = desktop.replace(/^Categories=.*$/gm, 'Categories=Development;Utility;');
+
     fs.writeFileSync(desktopFile, desktop);
   }
 
@@ -120,7 +259,9 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
     let content = fs.readFileSync(bootstrapPath, 'utf8');
     const inject = `(()=>{const {app}=require("electron");app.on("browser-window-created",(e,w)=>{w.setMenuBarVisibility(false);w.autoHideMenuBar=true;w.webContents.on("dom-ready",()=>{w.webContents.executeJavaScript(\`(function(){const style=document.createElement('style');document.head.appendChild(style);function updateColors(){const bg=window.getComputedStyle(document.body).backgroundColor;const rgb=bg.match(/\\\d+/g);if(rgb&&rgb.length>=3){const isDark=(rgb[0]*0.299+rgb[1]*0.587+rgb[2]*0.114)<128;const sidebarBg=isDark?'#1e1e1e':'#f5f5f7';style.textContent='* { backdrop-filter: none !important; } aside, nav, [class*="sidebar"], [class*="Sidebar"] { background-color: '+sidebarBg+' !important; }';}}updateColors();setInterval(updateColors, 1000);})();\`).catch(()=>{});});});})();`;
     if (!content.includes('setMenuBarVisibility')) {
-      content = content.replace('require("electron");', `require("electron");${inject}`);
+      // Inject autoUpdater no-op right after the menu bar injection
+      const autoUpdaterNoop = `(()=>{const _r=require;const _req=_r.bind(module);const _m=new Proxy({},{get:(t,k)=>k==="autoUpdater"?{checkForUpdates:()=>Promise.resolve(),checkForUpdatesAndNotify:()=>Promise.resolve(),getAutoUpdateAndNotifyPromise:()=>Promise.resolve(),quitAndInstall:()=>{},on:()=>({}),once:()=>({}),removeAllListeners:()=>({})}:undefined});Object.defineProperty(module,"exports",{get:()=>_m,set:(v)=>{},configurable:true});})();`;
+      content = content.replace('require("electron");', `require("electron");${inject}${autoUpdaterNoop}`);
       fs.writeFileSync(bootstrapPath, content);
     } else if (content.includes('const updateBg=()=>{try{')) {
       // Replace the previous injection with the new one
@@ -151,4 +292,13 @@ exec "\${ELECTRON_BIN}" "\${extra_args[@]}" "$@"
       }
     }
   }
+
+  // Normalize permissions: dirs 755, files 644, executables 755
+  const { execSync } = require('child_process');
+  execSync(
+    `find "${appOutDir}" -type d -exec chmod 755 {} + && ` +
+    `find "${appOutDir}" -type f ! -perm -111 -exec chmod 644 {} + && ` +
+    `find "${appOutDir}" -type f -perm -111 -exec chmod 755 {} +`,
+    { stdio: 'pipe' }
+  );
 };

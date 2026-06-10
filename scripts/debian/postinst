@@ -1,0 +1,60 @@
+#!/bin/bash
+set -e
+
+# Update desktop database (idempotent)
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications || true
+fi
+
+# Update icon cache (idempotent)
+gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
+
+# Set chrome-sandbox permissions
+for prefix in /usr/lib/codex-desktop /opt/codex-desktop; do
+    sandbox="${prefix}/chrome-sandbox"
+    if [ -f "$sandbox" ]; then
+        chown root:root "$sandbox"
+        chmod 4755 "$sandbox"
+        break
+    fi
+done
+
+# Generate AppArmor profile if apparmor_parser is available
+if command -v apparmor_parser >/dev/null 2>&1; then
+    PROFILE_PATH="/etc/apparmor.d/codex-desktop"
+
+    # Detect install prefix by locating the binary
+    INSTALL_PREFIX="/opt/codex-desktop"
+    for candidate in /opt/codex-desktop /usr/lib/codex-desktop; do
+        if [ -d "$candidate" ]; then
+            INSTALL_PREFIX="$candidate"
+            break
+        fi
+    done
+
+    BINARY_PATH="${INSTALL_PREFIX}/codex-desktop.bin"
+
+    if [ ! -f "$PROFILE_PATH" ]; then
+        cat > "$PROFILE_PATH" << EOF
+#include <tunables/global>
+
+${BINARY_PATH} {
+  #include <abstractions/base>
+  userns,
+
+  ${INSTALL_PREFIX}/** r,
+  ${INSTALL_PREFIX}/** rwlix,
+
+  owner @{HOME}/.config/Codex*/** rwlk,
+  owner @{HOME}/.config/Codex* rw,
+
+  /usr/share/** r,
+  /etc/** r,
+
+  network,
+}
+EOF
+    fi
+
+    apparmor_parser -r "$PROFILE_PATH" || true
+fi

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.openai.codex.desktop</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>LicenseRef-Proprietary</project_license>
+  <name>Codex Desktop</name>
+  <summary>Codex Desktop for Linux</summary>
+  <description>
+    <p>Unofficial Linux packaging of Codex Desktop, OpenAI's AI-powered coding assistant.</p>
+  </description>
+  <url type="homepage">https://github.com/cuongducle/codex-linux</url>
+  <url type="bugtracker">https://github.com/cuongducle/codex-linux/issues</url>
+  <launchable type="desktop-id">codex-desktop.desktop</launchable>
+  <provides>
+    <binary>codex-desktop</binary>
+  </provides>
+  <supports>
+    <id>org.freedesktop.Platform/x86_64</id>
+    <id>org.freedesktop.Platform/aarch64</id>
+  </supports>
+  <content_rating type="oars-1.1" intensity="mild" />
+  <releases>
+    <release version="0.1.0" date="2025-06-09">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+</component>

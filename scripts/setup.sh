@@ -122,13 +122,82 @@ elif [[ -f "\${CHROME_SANDBOX_BIN}" ]]; then
     EXTRA_ELECTRON_ARGS+=(--no-sandbox --disable-gpu-sandbox)
   fi
 fi
-if [[ "\${CODEX_USE_X11:-1}" == "1" ]]; then
+# Wayland / X11 detection
+if [[ "\${CODEX_USE_X11:-0}" == "1" ]]; then
+  EXTRA_ELECTRON_ARGS+=(--ozone-platform=x11)
+elif [[ "\${CODEX_USE_WAYLAND:-0}" == "1" ]]; then
+  EXTRA_ELECTRON_ARGS+=(--ozone-platform=wayland --enable-features=WaylandWindowDecorations)
+elif [[ -n "\${WAYLAND_DISPLAY:-}" ]]; then
+  EXTRA_ELECTRON_ARGS+=(--ozone-platform=wayland --enable-features=WaylandWindowDecorations)
+else
   EXTRA_ELECTRON_ARGS+=(--ozone-platform=x11)
 fi
-if [[ "\${CODEX_DISABLE_VULKAN:-1}" == "1" ]]; then
+# Vulkan (only disable if explicitly requested)
+if [[ "\${CODEX_DISABLE_VULKAN:-0}" == "1" ]]; then
   EXTRA_ELECTRON_ARGS+=(--disable-features=Vulkan)
 fi
+EXTRA_ELECTRON_ARGS+=(--password-store="\${CODEX_PASSWORD_STORE:-basic}")
 EXTRA_ELECTRON_ARGS+=(--use-gl="\${CODEX_GL_BACKEND:-egl}")
+# Stale SingletonLock cleanup
+CONFIG_DIR="\${XDG_CONFIG_HOME:-\${HOME}/.config}"
+for singleton_dir in "\${CONFIG_DIR}/Codex" "\${CONFIG_DIR}/Codex Desktop"; do
+  singleton_lock="\${singleton_dir}/SingletonLock"
+  if [[ -L "\${singleton_lock}" ]]; then
+    lock_target="$(readlink "\${singleton_lock}")"
+    lock_pid="\${lock_target##*-}"
+    if [[ -n "\${lock_pid}" && "\${lock_pid}" =~ ^[0-9]+$ ]] && ! kill -0 "\${lock_pid}" 2>/dev/null; then
+      rm -f "\${singleton_lock}"
+    fi
+  fi
+done
+# --doctor flag
+if [[ "\${1:-}" == "--doctor" ]]; then
+  echo "=== Codex Desktop Doctor ==="
+  echo ""
+  echo "Display Server:"
+  if [[ -n "\${WAYLAND_DISPLAY:-}" ]]; then
+    echo "  Wayland: WAYLAND_DISPLAY=\${WAYLAND_DISPLAY}"
+  elif [[ "\${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
+    echo "  Wayland (via XDG_SESSION_TYPE)"
+  else
+    echo "  X11"
+  fi
+  echo ""
+  echo "GPU:"
+  if [[ "\${CODEX_DISABLE_GPU:-0}" == "1" ]]; then
+    echo "  GPU acceleration: DISABLED"
+  else
+    echo "  GPU acceleration: enabled"
+  fi
+  echo "  GL backend: \${CODEX_GL_BACKEND:-egl}"
+  echo ""
+  echo "CLI Path:"
+  echo "  CODEX_CLI_PATH=\${CODEX_CLI_PATH}"
+  echo ""
+  echo "Platform:"
+  echo "  $(uname -a)"
+  echo "  Arch: $(uname -m)"
+  echo ""
+  echo "Electron:"
+  echo "  ELECTRON_BIN=\${ELECTRON_BIN}"
+  echo "  Version: $("${ELECTRON_BIN}" --version 2>/dev/null || echo "unknown")"
+  echo ""
+  echo "Sandbox:"
+  CHROME_SANDBOX_BIN="\${ROOT_DIR}/node_modules/electron/dist/chrome-sandbox"
+  if [[ -f "\${CHROME_SANDBOX_BIN}" ]]; then
+    sandbox_uid="$(stat -c '%u' "\${CHROME_SANDBOX_BIN}" 2>/dev/null || echo "?")"
+    sandbox_mode="$(stat -c '%a' "\${CHROME_SANDBOX_BIN}" 2>/dev/null || echo "?")"
+    echo "  chrome-sandbox uid=\${sandbox_uid} mode=\${sandbox_mode}"
+    if [[ "\${sandbox_uid}" == "0" && "\${sandbox_mode}" == "4755" ]]; then
+      echo "  Status: OK (setuid root)"
+    else
+      echo "  Status: NOT setuid root (sandbox disabled or not functional)"
+    fi
+  else
+    echo "  chrome-sandbox: not found"
+  fi
+  exit 0
+fi
 exec "\${ELECTRON_BIN}" "\${EXTRA_ELECTRON_ARGS[@]}" "\${APP_DIR}" "\$@"
 EOF
   chmod +x "${HOME}/.local/bin/codex-desktop"
