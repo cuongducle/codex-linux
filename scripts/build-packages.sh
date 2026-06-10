@@ -72,7 +72,7 @@ if [[ ! -d "${ROOT_DIR}/node_modules" ]]; then
   echo "Installing root dependencies..."
   (
     cd "${ROOT_DIR}"
-    npm install
+    npm install --include=dev
   )
 fi
 

@@ -28,23 +28,20 @@ linux:
     Comment: Codex Desktop for Linux
     Categories: Development;Utility;
     StartupWMClass: Codex
-  mimetypes:
-    - x-scheme-handler/codex
-  deb:
-    afterInstall: scripts/debian/postinst
-    afterRemove: scripts/debian/postrm
-    depends:
-      - "libgtk-3-0"
-      - "libnotify4"
-      - "libnss3"
-      - "libxss1"
-      - "libsecret-1-0"
-      - "libxtst6"
-    recommends:
-      - "libappindicator3-1"
-    priority: optional
-    section: utils
-    fpm: ["--deb-no-default-config-files"]
+deb:
+  afterInstall: scripts/debian/postinst
+  afterRemove: scripts/debian/postrm
+  depends:
+    - "libgtk-3-0"
+    - "libnotify4"
+    - "libnss3"
+    - "libxss1"
+    - "libsecret-1-0"
+    - "libxtst6"
+  recommends:
+    - "libappindicator3-1"
+  priority: optional
+  packageCategory: utils
 extraMetadata:
   name: codex-desktop
   productName: Codex

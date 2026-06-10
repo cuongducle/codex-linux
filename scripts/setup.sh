@@ -50,7 +50,7 @@ fi
 echo "[1/5] Installing npm dependencies..."
 (
   cd "${ROOT_DIR}"
-  npm install
+  npm install --include=dev
 )
 
 echo "[2/5] Extracting app payload from DMG..."
