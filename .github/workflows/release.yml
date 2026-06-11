@@ -159,6 +159,8 @@ jobs:
           # Copy the generated index files back to dist/ for upload as release assets
           cp dist/apt-flat/Packages dist/Packages
           cp dist/apt-flat/Packages.gz dist/Packages.gz
+          cp dist/apt-flat/Release dist/Release
+          cp dist/apt-flat/Translation-en.gz dist/Translation-en.gz
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
@@ -172,6 +174,8 @@ jobs:
             dist/*.AppImage
             dist/Packages
             dist/Packages.gz
+            dist/Release
+            dist/Translation-en.gz
 
       - name: Build gh-pages site
         if: matrix.arch == 'x64'

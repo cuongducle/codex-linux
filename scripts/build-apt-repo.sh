@@ -45,6 +45,34 @@ if [[ "${FLAT_REPO}" == "1" ]]; then
 
   gzip -9 -c "${PACKAGES_FILE}" > "${PACKAGES_GZ_FILE}"
 
+  # Generate a minimal Release file so APT doesn't look for InRelease
+  packages_size="$(stat -c%s "${PACKAGES_FILE}")"
+  packages_gz_size="$(stat -c%s "${PACKAGES_GZ_FILE}")"
+  packages_md5="$(md5sum "${PACKAGES_FILE}" | awk '{print $1}')"
+  packages_gz_md5="$(md5sum "${PACKAGES_GZ_FILE}" | awk '{print $1}')"
+  packages_sha256="$(sha256sum "${PACKAGES_FILE}" | awk '{print $1}')"
+  packages_gz_sha256="$(sha256sum "${PACKAGES_GZ_FILE}" | awk '{print $1}')"
+
+  cat > "${REPO_DIR}/Release" <<EOF
+Origin: ${PACKAGE_NAME}
+Label: ${PACKAGE_NAME}
+Suite: stable
+Codename: stable
+Date: $(LC_ALL=C date -Ru)
+Architectures: amd64
+Components: main
+Description: ${PACKAGE_NAME} APT repository
+MD5Sum:
+ ${packages_md5} ${packages_size} Packages
+ ${packages_gz_md5} ${packages_gz_size} Packages.gz
+SHA256:
+ ${packages_sha256} ${packages_size} Packages
+ ${packages_gz_sha256} ${packages_gz_size} Packages.gz
+EOF
+
+  # Empty Translation-en so APT stops looking for translations
+  gzip -9 -c /dev/null > "${REPO_DIR}/Translation-en.gz"
+
   # Clean up .deb files from the repo dir (they'll be served from GitHub Releases)
   rm -f "${REPO_DIR}"/*.deb
 
@@ -97,7 +125,7 @@ SHA256:
 EOF
 
   # Remove bundled .deb files from pool when using external Releases URL
-  if [[ -n "${RELEASES_BASE_URL:-}" ]]; then
+  if [[ -n "${RELEASES_BASE_URL:-}" ]; then
     rm -f "${REPO_DIR}/pool/main/c/${PACKAGE_NAME}"/*.deb
     rm -f "${REPO_DIR}"/*.deb
   fi
