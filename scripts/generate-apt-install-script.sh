@@ -24,7 +24,7 @@ if [[ "\${EUID}" -ne 0 ]]; then
 fi
 
 SOURCE_FILE="/etc/apt/sources.list.d/${PACKAGE_NAME}.list"
-REPO_LINE="deb [trusted=yes] https://${OWNER}.github.io/${REPO}/ stable main"
+REPO_LINE="deb [trusted=yes] https://github.com/${OWNER}/${REPO}/releases/latest/download/ ./"
 
 echo "\${REPO_LINE}" > "\${SOURCE_FILE}"
 apt update

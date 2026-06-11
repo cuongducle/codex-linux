@@ -145,6 +145,21 @@ jobs:
           file "${APP_OUT_DIR}/resources/bin/codex"
           file "${APP_OUT_DIR}/resources/bin/codex" | grep -E "ELF"
 
+      - name: Generate flat APT Packages index for GitHub Releases
+        if: matrix.arch == 'x64'
+        run: |
+          set -euo pipefail
+          # Generate a flat Packages file where Filename: is just the .deb basename.
+          # This sits alongside the .deb in the GitHub Release assets directory,
+          # so APT resolves it correctly when using:
+          #   deb [trusted=yes] https://github.com/<owner>/<repo>/releases/latest/download/ ./
+          mkdir -p dist/apt-flat
+          cp dist/*.deb dist/apt-flat/
+          FLAT_REPO=1 bash scripts/build-apt-repo.sh dist/apt-flat
+          # Copy the generated index files back to dist/ for upload as release assets
+          cp dist/apt-flat/Packages dist/Packages
+          cp dist/apt-flat/Packages.gz dist/Packages.gz
+
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
         env:
@@ -155,20 +170,21 @@ jobs:
           files: |
             dist/*.deb
             dist/*.AppImage
+            dist/Packages
+            dist/Packages.gz
 
-      - name: Build APT repository files
+      - name: Build gh-pages site
         if: matrix.arch == 'x64'
         env:
           TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
-          RELEASES_BASE_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}"
-          mkdir -p apt-public
-          cp dist/*.deb apt-public/
-          RELEASES_BASE_URL="${RELEASES_BASE_URL}" bash scripts/build-apt-repo.sh apt-public
-          bash scripts/generate-apt-install-script.sh "${{ github.repository_owner }}" "${{ github.event.repository.name }}" apt-public
           REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          cat > apt-public/index.html <<EOF
+          RELEASES_REPO_URL="https://github.com/${{ github.repository }}/releases/latest/download"
+          mkdir -p apt-public
+
+          bash scripts/generate-apt-install-script.sh "${{ github.repository_owner }}" "${{ github.event.repository.name }}" apt-public
+
           cat > apt-public/index.html <<EOF
           <!doctype html>
           <html lang="en">
@@ -187,8 +203,6 @@ jobs:
             <meta name="twitter:card" content="summary" />
             <meta name="twitter:title" content="Install Codex Desktop on Linux" />
             <meta name="twitter:description" content="Unofficial native packages for OpenAI Codex Desktop on Ubuntu, Debian, and any Linux distro." />
-            <!-- Google Search Console verification - replace YOUR_VERIFICATION_CODE below -->
-            <!-- <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> -->
             <style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#333}h1{border-bottom:2px solid #10a37f;padding-bottom:.5rem}a{color:#10a37f}pre{background:#f6f8fa;padding:1rem;border-radius:6px;overflow-x:auto}code{font-family:monospace;font-size:.9em}</style>
           </head>
           <body>
@@ -197,7 +211,7 @@ jobs:
             <p><strong>Quick install:</strong></p>
             <pre><code>curl -fsSL ${REPO_URL}/install.sh | sudo bash</code></pre>
             <p><strong>Or add the APT repository:</strong></p>
-            <pre><code>echo "deb [trusted=yes] ${REPO_URL}/ stable main" | sudo tee /etc/apt/sources.list.d/codex-desktop.list
+            <pre><code>echo "deb [trusted=yes] ${RELEASES_REPO_URL}/ ./" | sudo tee /etc/apt/sources.list.d/codex-desktop.list
           sudo apt update
           sudo apt install codex-desktop</code></pre>
             <p style="margin-top:1rem"><strong>Note:</strong> This is an unofficial project. See the <a href="https://github.com/cuongducle/codex-linux">GitHub repository</a> for source code, AppImage downloads, and documentation.</p>
@@ -242,7 +256,7 @@ jobs:
           codex-linux-seo-2026
           KEYEOF
 
-      - name: Publish APT repo to gh-pages
+      - name: Publish site to gh-pages
         if: matrix.arch == 'x64'
         uses: peaceiris/actions-gh-pages@v4
         with:
