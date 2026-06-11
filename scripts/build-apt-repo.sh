@@ -28,10 +28,43 @@ if [[ "${#deb_files[@]}" -eq 0 ]]; then
   exit 1
 fi
 
+generate_release_file() {
+  local release_path="$1"
+  local packages_file="$2"
+  local packages_rel="$3"
+
+  local packages_gz_file="${packages_file}.gz"
+  local packages_gz_rel="${packages_rel}.gz"
+  local packages_size packages_gz_size
+  local packages_md5 packages_gz_md5
+  local packages_sha256 packages_gz_sha256
+
+  packages_size="$(stat -c%s "${packages_file}")"
+  packages_gz_size="$(stat -c%s "${packages_gz_file}")"
+  packages_md5="$(md5sum "${packages_file}" | awk '{print $1}')"
+  packages_gz_md5="$(md5sum "${packages_gz_file}" | awk '{print $1}')"
+  packages_sha256="$(sha256sum "${packages_file}" | awk '{print $1}')"
+  packages_gz_sha256="$(sha256sum "${packages_gz_file}" | awk '{print $1}')"
+
+  {
+    echo "Origin: ${PACKAGE_NAME}"
+    echo "Label: ${PACKAGE_NAME}"
+    echo "Suite: stable"
+    echo "Codename: stable"
+    echo "Date: $(LC_ALL=C date -Ru)"
+    echo "Architectures: amd64"
+    echo "Components: main"
+    echo "Description: ${PACKAGE_NAME} APT repository"
+    echo "MD5Sum:"
+    echo " ${packages_md5} ${packages_size} ${packages_rel}"
+    echo " ${packages_gz_md5} ${packages_gz_size} ${packages_gz_rel}"
+    echo "SHA256:"
+    echo " ${packages_sha256} ${packages_size} ${packages_rel}"
+    echo " ${packages_gz_sha256} ${packages_gz_size} ${packages_gz_rel}"
+  } > "${release_path}"
+}
+
 if [[ "${FLAT_REPO}" == "1" ]]; then
-  # Flat repo mode: Packages file sits alongside .deb files.
-  # Filename: entries are just the .deb basename so APT resolves them
-  # relative to the same directory (e.g. a GitHub Release assets page).
   PACKAGES_FILE="${REPO_DIR}/Packages"
   PACKAGES_GZ_FILE="${PACKAGES_FILE}.gz"
 
@@ -40,46 +73,18 @@ if [[ "${FLAT_REPO}" == "1" ]]; then
     dpkg-scanpackages --multiversion . /dev/null > "${PACKAGES_FILE#${REPO_DIR}/}"
   )
 
-  # dpkg-scanpackages produces "Filename: ./file.deb"; strip the "./" prefix
   sed -i 's|^Filename: \./|Filename: |' "${PACKAGES_FILE}"
-
   gzip -9 -c "${PACKAGES_FILE}" > "${PACKAGES_GZ_FILE}"
 
-  # Generate a minimal Release file so APT doesn't look for InRelease
-  packages_size="$(stat -c%s "${PACKAGES_FILE}")"
-  packages_gz_size="$(stat -c%s "${PACKAGES_GZ_FILE}")"
-  packages_md5="$(md5sum "${PACKAGES_FILE}" | awk '{print $1}')"
-  packages_gz_md5="$(md5sum "${PACKAGES_GZ_FILE}" | awk '{print $1}')"
-  packages_sha256="$(sha256sum "${PACKAGES_FILE}" | awk '{print $1}')"
-  packages_gz_sha256="$(sha256sum "${PACKAGES_GZ_FILE}" | awk '{print $1}')"
+  generate_release_file "${REPO_DIR}/Release" "${PACKAGES_FILE}" "Packages"
 
-  cat > "${REPO_DIR}/Release" <<EOF
-Origin: ${PACKAGE_NAME}
-Label: ${PACKAGE_NAME}
-Suite: stable
-Codename: stable
-Date: $(LC_ALL=C date -Ru)
-Architectures: amd64
-Components: main
-Description: ${PACKAGE_NAME} APT repository
-MD5Sum:
- ${packages_md5} ${packages_size} Packages
- ${packages_gz_md5} ${packages_gz_size} Packages.gz
-SHA256:
- ${packages_sha256} ${packages_size} Packages
- ${packages_gz_sha256} ${packages_gz_size} Packages.gz
-EOF
-
-  # Empty Translation-en so APT stops looking for translations
   gzip -9 -c /dev/null > "${REPO_DIR}/Translation-en.gz"
 
-  # Clean up .deb files from the repo dir (they'll be served from GitHub Releases)
   rm -f "${REPO_DIR}"/*.deb
 
   echo "Flat APT repository generated at: ${REPO_DIR}"
   echo "Package index: ${PACKAGES_FILE}"
 else
-  # Traditional structured repo mode (dists/pool layout for gh-pages).
   mkdir -p "${REPO_DIR}/pool/main/c/${PACKAGE_NAME}"
   mkdir -p "${REPO_DIR}/dists/stable/main/binary-amd64"
 
@@ -98,34 +103,10 @@ else
 
   gzip -9 -c "${PACKAGES_FILE}" > "${PACKAGES_GZ_FILE}"
 
-  packages_rel="main/binary-amd64/Packages"
-  packages_gz_rel="main/binary-amd64/Packages.gz"
-  packages_size="$(stat -c%s "${PACKAGES_FILE}")"
-  packages_gz_size="$(stat -c%s "${PACKAGES_GZ_FILE}")"
-  packages_md5="$(md5sum "${PACKAGES_FILE}" | awk '{print $1}')"
-  packages_gz_md5="$(md5sum "${PACKAGES_GZ_FILE}" | awk '{print $1}')"
-  packages_sha256="$(sha256sum "${PACKAGES_FILE}" | awk '{print $1}')"
-  packages_gz_sha256="$(sha256sum "${PACKAGES_GZ_FILE}" | awk '{print $1}')"
+  generate_release_file "${RELEASE_FILE}" "${PACKAGES_FILE}" \
+    "main/binary-amd64/Packages"
 
-  cat > "${RELEASE_FILE}" <<EOF
-Origin: ${PACKAGE_NAME}
-Label: ${PACKAGE_NAME}
-Suite: stable
-Codename: stable
-Date: $(LC_ALL=C date -Ru)
-Architectures: amd64
-Components: main
-Description: ${PACKAGE_NAME} APT repository
-MD5Sum:
- ${packages_md5} ${packages_size} ${packages_rel}
- ${packages_gz_md5} ${packages_gz_size} ${packages_gz_rel}
-SHA256:
- ${packages_sha256} ${packages_size} ${packages_rel}
- ${packages_gz_sha256} ${packages_gz_size} ${packages_gz_rel}
-EOF
-
-  # Remove bundled .deb files from pool when using external Releases URL
-  if [[ -n "${RELEASES_BASE_URL:-}" ]; then
+  if [[ -n "${RELEASES_BASE_URL:-}" ]]; then
     rm -f "${REPO_DIR}/pool/main/c/${PACKAGE_NAME}"/*.deb
     rm -f "${REPO_DIR}"/*.deb
   fi
