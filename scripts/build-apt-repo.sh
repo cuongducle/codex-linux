@@ -79,6 +79,7 @@ EOF
 # Remove bundled .deb files from pool when using external Releases URL
 if [[ -n "${RELEASES_BASE_URL:-}" ]]; then
   rm -f "${REPO_DIR}/pool/main/c/${PACKAGE_NAME}"/*.deb
+  rm -f "${REPO_DIR}"/*.deb
 fi
 
 echo "APT repository generated at: ${REPO_DIR}"
