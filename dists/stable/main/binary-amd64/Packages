@@ -1,16 +1,16 @@
 Package: codex-desktop
-Version: 26.305.950
+Version: 26.608.12217
 Architecture: amd64
 Maintainer: Codex Linux Maintainers <codex-linux-maintainers@users.noreply.github.com>
-Installed-Size: 334684
-Depends: libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0
+Installed-Size: 906400
+Depends: libgtk-3-0, libnotify4, libnss3, libxss1, libsecret-1-0, libxtst6
 Recommends: libappindicator3-1
-Filename: pool/main/c/codex-desktop/codex-desktop-26.305.950-amd64.deb
-Size: 87967670
-MD5sum: 12fc3b6cd6d6d60136628ca3b033ab13
-SHA1: 833e3ef1d5b6fcfec44fba79228140297508ea92
-SHA256: 8096ae628868f8090b562477bcb5dff1b826b99c5ef63672372a695f237d383a
-Section: default
+Filename: https://github.com/cuongducle/codex-linux/releases/download/v26.608.12217-5/codex-desktop-26.608.12217-5-linux-amd64.deb
+Size: 178030356
+MD5sum: a93c224c01c9131d2cd10aa81c61d2c9
+SHA1: c459f4cb980244f3be554436a4df5c0a3cac071c
+SHA256: 17e8c476366636d418cb19ae3a24bb374b37c5d4b0133deb2c68cb044f28c7d2
+Section: utils
 Priority: optional
 Homepage: https://github.com/cuongducle/codex-linux
 Description:

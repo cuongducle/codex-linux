@@ -2,13 +2,13 @@ Origin: codex-desktop
 Label: codex-desktop
 Suite: stable
 Codename: stable
-Date: Tue, 10 Mar 2026 03:11:51 +0000
+Date: Thu, 11 Jun 2026 00:22:05 +0000
 Architectures: amd64
 Components: main
 Description: codex-desktop APT repository
 MD5Sum:
- a9bbe9c4f6da512968b5d5bac8d2dac8 772 main/binary-amd64/Packages
- 2e32286a0a921b84b7f081d9d2ea15fe 479 main/binary-amd64/Packages.gz
+ 33bde4b4f8042cc05c99c2f45eabf356 797 main/binary-amd64/Packages
+ 0bfe31f7624e474ca9938feb673cecb0 471 main/binary-amd64/Packages.gz
 SHA256:
- 710861a032230f5c4ed75dae9429486cd7619e9db820bf6b642607ccf1c93c33 772 main/binary-amd64/Packages
- 6c64ae2812d39fd8e5c54d9bd350da90684ff731840e33e8cb1ad48bbbf67375 479 main/binary-amd64/Packages.gz
+ eeff14872e0c3916e9b729daca304847de25707d0af61879658e98320940cfef 797 main/binary-amd64/Packages
+ 3189ba72e0eae49153e67dd8c2cdc8a9d99ab0beff6ddb9bf557865f3bafc3c2 471 main/binary-amd64/Packages.gz
