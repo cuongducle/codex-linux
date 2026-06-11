@@ -7,7 +7,7 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 SOURCE_FILE="/etc/apt/sources.list.d/codex-desktop.list"
-REPO_LINE="deb [trusted=yes] https://cuongducle.github.io/codex-linux/ stable main"
+REPO_LINE="deb [trusted=yes] https://github.com/cuongducle/codex-linux/releases/latest/download/ ./"
 
 echo "${REPO_LINE}" > "${SOURCE_FILE}"
 apt update
