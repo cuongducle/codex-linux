@@ -89,10 +89,20 @@ sudo apt-get install -f   # pull in any missing dependencies
 
 ### AppImage (any distro)
 
+**x86_64 / amd64:**
+
 ```bash
 wget https://github.com/cuongducle/codex-linux/releases/latest/download/codex-desktop-linux-x86_64.AppImage
 chmod +x codex-desktop-linux-x86_64.AppImage
 ./codex-desktop-linux-x86_64.AppImage
+```
+
+**arm64:**
+
+```bash
+wget https://github.com/cuongducle/codex-linux/releases/latest/download/codex-desktop-linux-arm64.AppImage
+chmod +x codex-desktop-linux-arm64.AppImage
+./codex-desktop-linux-arm64.AppImage
 ```
 
 > [!NOTE]
